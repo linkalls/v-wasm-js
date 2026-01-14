@@ -14,6 +14,8 @@ export interface VAtom<T> {
   read?: (get: Getter) => T
   // WASM integration
   id?: number
+  // Optimization: Direct state access
+  _state?: VAtomState<T>
 }
 
 interface VAtomState<T> {
@@ -27,7 +29,7 @@ interface VAtomState<T> {
 let currentComponent: (() => void) | null = null
 
 // === Store (Global State Container) ===
-const atomStates = new WeakMap<VAtom<any>, VAtomState<any>>()
+// Optimization A: Removed WeakMap, state is on atom._state
 
 // === WASM Integration ===
 interface VWasmExports {
@@ -41,6 +43,7 @@ interface VWasmExports {
 
 let wasmExports: VWasmExports | null = null
 let graphPtr: number = 0
+let updateBufferPtr: number = 0 // Optimization C: Cache buffer pointer
 
 export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
   if (wasmExports) return
@@ -57,16 +60,21 @@ export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
 
     // Initialize graph in WASM
     graphPtr = wasmExports.init_graph()
+    updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
     console.log('V-Signal WASM initialized')
   } catch (error) {
     console.warn('Failed to load WASM, using pure JS mode:', error)
   }
 }
 
+// Optimization B: Array for ID lookup
+const idToAtomArray: VAtom<any>[] = []
+
 // Helper to interact with WASM graph
 function registerNodeInWasm(atom: VAtom<any>) {
   if (wasmExports && typeof atom.id === 'undefined') {
     atom.id = wasmExports.create_node(graphPtr)
+    idToAtomArray[atom.id] = atom
   }
 }
 
@@ -77,35 +85,40 @@ function registerDependencyInWasm(dependent: VAtom<any>, dependency: VAtom<any>)
 }
 
 function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
-  let state = atomStates.get(atom)
-  if (!state) {
-    const deps = new Set<VAtom<any>>()
-    const trackedGet: Getter = (a) => {
-      deps.add(a)
-      return getAtomState(a).value
-    }
+  // Optimization A: Direct property access
+  if (atom._state) return atom._state
 
-    // Lazy registration for WASM
-    registerNodeInWasm(atom)
-
-    const initial = atom.read 
-      ? atom.read(trackedGet)
-      : atom.init
-    state = {
-      value: initial,
-      subscribers: new Set(),
-      deps,
-      dependents: new Set()
-    }
-    atomStates.set(atom, state)
-    // Register this atom as a dependent of its dependencies
-    deps.forEach(dep => {
-      getAtomState(dep).dependents.add(atom)
-      // WASM Dependency Registration
-      registerNodeInWasm(dep)
-      registerDependencyInWasm(atom, dep)
-    })
+  const deps = new Set<VAtom<any>>()
+  const trackedGet: Getter = (a) => {
+    deps.add(a)
+    // Direct recursive access
+    if (a._state) return a._state.value
+    return getAtomState(a).value
   }
+
+  // Lazy registration for WASM
+  registerNodeInWasm(atom)
+
+  const initial = atom.read
+    ? atom.read(trackedGet)
+    : atom.init
+
+  const state: VAtomState<T> = {
+    value: initial,
+    subscribers: new Set(),
+    deps,
+    dependents: new Set()
+  }
+  atom._state = state
+
+  // Register this atom as a dependent of its dependencies
+  deps.forEach(dep => {
+    getAtomState(dep).dependents.add(atom)
+    // WASM Dependency Registration
+    registerNodeInWasm(dep)
+    registerDependencyInWasm(atom, dep)
+  })
+
   return state
 }
 
@@ -116,8 +129,6 @@ export function v<T>(initial: T): VAtom<T> {
     _brand: 'v-atom',
     init: initial
   }
-  // If WASM is already ready, register immediately?
-  // Better to do it lazily in getAtomState to ensure order or on first access
   return atom
 }
 
@@ -184,8 +195,6 @@ function updateDerived(source: VAtom<any>): void {
     
     if (atom.read) {
       const state = getAtomState(atom)
-      // Re-evaluate
-      // Note: In a real robust system, we should track deps again in case they change dynamically
       const newValue = atom.read((a) => getAtomState(a).value)
       
       if (state.value !== newValue) {
@@ -198,38 +207,27 @@ function updateDerived(source: VAtom<any>): void {
 }
 
 // === Derived Atom Updates (WASM) ===
-// Map ID -> Atom for reverse lookup
-const idToAtomMap = new Map<number, VAtom<any>>()
-
-// We need to maintain this map.
-// Updated registerNodeInWasm:
-function registerNodeInWasmWithMap(atom: VAtom<any>) {
-  if (wasmExports && typeof atom.id === 'undefined') {
-    atom.id = wasmExports.create_node(graphPtr)
-    idToAtomMap.set(atom.id, atom)
-  }
-}
-
-// Override previous helper
-registerNodeInWasm = registerNodeInWasmWithMap
 
 function updateDerivedWasm(source: VAtom<any>): void {
   if (!wasmExports || typeof source.id !== 'number') return
 
   const count = wasmExports.propagate(graphPtr, source.id)
   if (count > 0) {
-    const bufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
-    // Read `count` integers (32-bit) from memory
-    const ids = new Int32Array(wasmExports.memory.buffer, bufferPtr, count)
+    // Optimization C: Use cached pointer
+    const ids = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, count)
 
-    // WASM returns topological order (or BFS order) of affected nodes
     for (let i = 0; i < count; i++) {
       const id = ids[i]
-      const atom = idToAtomMap.get(id)
+      // Optimization B: Array access
+      const atom = idToAtomArray[id]
       if (atom && atom.read) {
-        const state = getAtomState(atom)
+        // Optimization A: Direct access
+        const state = atom._state!
+
         // Re-evaluate
-        const newValue = atom.read((a) => getAtomState(a).value)
+        // Note: For extreme speed, we might want to optimize the `read` function's `get` arg too
+        // but `getAtomState` is now fast.
+        const newValue = atom.read((a) => a._state ? a._state.value : getAtomState(a).value)
 
         if (state.value !== newValue) {
           state.value = newValue
