@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>V-Luna Test</title>
+</head>
+<body>
+    <h1>Mizchi's Luna-like Web Component in V</h1>
+
+    <my-counter></my-counter>
+
+    <script>
+        // Glue code to handle V's WASM interface
+        class VCounter extends HTMLElement {
+            constructor() {
+                super();
+                this.wasmInstance = null;
+                this.memory = null;
+            }
+
+            async connectedCallback() {
+                // Initialize WASM
+                const importObject = {
+                    env: {
+                        __panic_abort: (ptr, len) => { throw new Error("Panic in V"); },
+                        __writeln: (ptr, len) => { console.log("Writeln from V"); }
+                    }
+                };
+
+                const { instance } = await WebAssembly.instantiateStreaming(fetch('app.wasm'), importObject);
+                this.wasmInstance = instance;
+                this.memory = instance.exports.memory;
+
+                // Initial render
+                this.render();
+            }
+
+            getVString(ptr, len) {
+                const bytes = new Uint8Array(this.memory.buffer, ptr, len);
+                return new TextDecoder('utf-8').decode(bytes);
+            }
+
+            render() {
+                if (!this.wasmInstance) return;
+
+                // Call V functions
+                const htmlPtr = this.wasmInstance.exports.get_html();
+                const htmlLen = this.wasmInstance.exports.get_html_len();
+
+                const html = this.getVString(htmlPtr, htmlLen);
+                this.innerHTML = html;
+            }
+
+            increment() {
+                if (!this.wasmInstance) return;
+                this.wasmInstance.exports.increment();
+                this.render();
+            }
+        }
+
+        customElements.define('my-counter', VCounter);
+    </script>
+</body>
+</html>
