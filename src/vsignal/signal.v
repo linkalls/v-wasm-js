@@ -1,12 +1,5 @@
 module main
 
-// Simple approach: just use parameters to pass state
-// The TS layer will manage the actual state
-
-// For WASM, we'll use a simple approach:
-// - Caller manages signal IDs
-// - WASM just does the math
-
 @[export: 'add']
 pub fn add(a int, b int) int {
 	return a + b
@@ -19,10 +12,15 @@ pub fn sub(a int, b int) int {
 
 @[export: 'fib']
 pub fn fib(n int) int {
-	if n <= 1 {
-		return n
+	if n <= 1 { return n }
+	mut a := 0
+	mut b := 1
+	mut i := 2
+	for i <= n {
+		c := a + b
+		a = b
+		b = c
+		i = i + 1
 	}
-	return fib(n - 1) + fib(n - 2)
+	return b
 }
-
-fn main() {}

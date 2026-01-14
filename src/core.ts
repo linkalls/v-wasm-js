@@ -18,17 +18,19 @@ interface VAtomState<T> {
   value: T
   subscribers: Set<Subscriber>
   deps: Set<VAtom<any>>
-  dependents: Set<VAtom<any>>  // atoms that depend on this atom
+  dependents: Set<VAtom<any>>
+  lastSeenEpoch: number
 }
 
 // === Render Context ===
 let currentComponent: (() => void) | null = null
 
 // === Store (Global State Container) ===
-const atomStates = new WeakMap<VAtom<any>, VAtomState<any>>()
+// Optimization: Storing state on the atom itself avoids WeakMap lookup overhead
+// const atomStates = new WeakMap<VAtom<any>, VAtomState<any>>()
 
 function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
-  let state = atomStates.get(atom)
+  let state = (atom as any)._state
   if (!state) {
     const deps = new Set<VAtom<any>>()
     const trackedGet: Getter = (a) => {
@@ -42,9 +44,11 @@ function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
       value: initial,
       subscribers: new Set(),
       deps,
-      dependents: new Set()
+      dependents: new Set(),
+      lastSeenEpoch: 0
     }
-    atomStates.set(atom, state)
+    ;(atom as any)._state = state
+
     // Register this atom as a dependent of its dependencies
     deps.forEach(dep => {
       getAtomState(dep).dependents.add(atom)
@@ -55,13 +59,6 @@ function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
 
 // === Core API ===
 
-/**
- * Create a reactive value
- * @example
- * const count = v(0)
- * const name = v('hello')
- * const user = v({ id: 1, name: 'John' })
- */
 export function v<T>(initial: T): VAtom<T> {
   return {
     _brand: 'v-atom',
@@ -69,45 +66,27 @@ export function v<T>(initial: T): VAtom<T> {
   }
 }
 
-/**
- * Create a derived value from other atoms
- * @example
- * const count = v(0)
- * const doubled = derive(get => get(count) * 2)
- */
 export function derive<T>(read: (get: Getter) => T): VAtom<T> {
   const atom: VAtom<T> = {
     _brand: 'v-atom',
     init: undefined as T,
     read
   }
-  derivedAtoms.add(atom)
   return atom
 }
 
-// Alias for backwards compatibility
 v.from = derive
 
 // === Store Operations ===
 
-/**
- * Get atom value
- * If called inside a render context (e.g., reactive text node), auto-subscribes
- */
 export function get<T>(atom: VAtom<T>): T {
   const state = getAtomState(atom)
-  
-  // Auto-subscribe if inside render context
   if (currentComponent) {
     state.subscribers.add(currentComponent)
   }
-  
   return state.value
 }
 
-/**
- * Set atom value
- */
 export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
   const state = getAtomState(atom)
   const newValue = typeof value === 'function'
@@ -116,16 +95,14 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
   
   if (state.value !== newValue) {
     state.value = newValue
-    // Update derived atoms FIRST so they're in sync
     updateDerived(atom)
-    // Then notify subscribers (run each subscriber inside render context)
-    state.subscribers.forEach(fn => withRenderContext(fn))
+    // Notify subscribers
+    if (state.subscribers.size > 0) {
+      state.subscribers.forEach(fn => withRenderContext(fn))
+    }
   }
 }
 
-/**
- * Subscribe to atom changes
- */
 export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
   const state = getAtomState(atom)
   state.subscribers.add(callback)
@@ -133,15 +110,67 @@ export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
 }
 
 // === Derived Atom Updates ===
-const derivedAtoms = new Set<VAtom<any>>()
+// Optimization: Reusing queue and using epoch for visited check to avoid allocation
+const updateQueue: VAtom<any>[] = []
+let updateEpoch = 0
+let isUpdating = false
 
 function updateDerived(source: VAtom<any>): void {
   const sourceState = getAtomState(source)
+  if (sourceState.dependents.size === 0) return
+
+  // Handle re-entrancy
+  if (isUpdating) {
+    return updateDerivedAllocated(sourceState)
+  }
+
+  isUpdating = true
+  updateEpoch++ // Increment epoch for this propagation cycle
+
+  try {
+    updateQueue.length = 0
+
+    // Fill queue
+    sourceState.dependents.forEach(dep => {
+      updateQueue.push(dep)
+    })
+
+    let i = 0
+    while (i < updateQueue.length) {
+      const atom = updateQueue[i++]
+      const state = getAtomState(atom)
+
+      // Visited check using epoch
+      if (state.lastSeenEpoch === updateEpoch) continue
+      state.lastSeenEpoch = updateEpoch
+
+      if (atom.read) {
+        const newValue = atom.read((a) => getAtomState(a).value)
+
+        if (state.value !== newValue) {
+          state.value = newValue
+          if (state.subscribers.size > 0) {
+            state.subscribers.forEach(fn => withRenderContext(fn))
+          }
+          // Add dependents
+          state.dependents.forEach(dep => updateQueue.push(dep))
+        }
+      }
+    }
+  } finally {
+    isUpdating = false
+    updateQueue.length = 0
+  }
+}
+
+function updateDerivedAllocated(sourceState: VAtomState<any>): void {
   const visited = new Set<VAtom<any>>()
-  const queue = [...sourceState.dependents]
+  const queue: VAtom<any>[] = []
+  sourceState.dependents.forEach(d => queue.push(d))
   
-  while (queue.length > 0) {
-    const atom = queue.shift()!
+  let i = 0
+  while (i < queue.length) {
+    const atom = queue[i++]
     if (visited.has(atom)) continue
     visited.add(atom)
     
@@ -151,48 +180,30 @@ function updateDerived(source: VAtom<any>): void {
       
       if (state.value !== newValue) {
         state.value = newValue
-        state.subscribers.forEach(fn => withRenderContext(fn))
-        // Add dependents of this atom to the queue
+        if (state.subscribers.size > 0) {
+          state.subscribers.forEach(fn => withRenderContext(fn))
+        }
         state.dependents.forEach(dep => queue.push(dep))
       }
     }
   }
 }
 
-// Note: derived atom registration is now done in derive() function
-
 // === Hook for TSX ===
 type UseAtomResult<T> = [T, (value: T | ((prev: T) => T)) => void]
 
-/**
- * Use atom in components - triggers re-render on change
- * @example
- * const [count, setCount] = use(countAtom)
- */
 export function use<T>(atom: VAtom<T>): UseAtomResult<T> {
   const state = getAtomState(atom)
-  
-  // Auto-subscribe if inside component render
   if (currentComponent) {
     state.subscribers.add(currentComponent)
   }
-  
-  return [
-    state.value,
-    (value) => set(atom, value)
-  ]
+  return [state.value, (value) => set(atom, value)]
 }
 
-/**
- * Read-only hook
- */
 export function useValue<T>(atom: VAtom<T>): T {
   return use(atom)[0]
 }
 
-/**
- * Write-only hook
- */
 export function useSet<T>(atom: VAtom<T>): (value: T | ((prev: T) => T)) => void {
   return use(atom)[1]
 }
@@ -207,14 +218,13 @@ export function withRenderContext(component: () => void): void {
   }
 }
 
-// === WASM Integration (for future heavy computations) ===
+// === WASM Integration ===
 interface VWasm {
   add: (a: number, b: number) => number
   sub: (a: number, b: number) => number
   fib: (n: number) => number
 }
 
-// JS fallback implementation
 const jsFallback: VWasm = {
   add: (a, b) => a + b,
   sub: (a, b) => a - b,
@@ -243,7 +253,6 @@ export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<VWasm> {
       return wasmModule
     }
     const bytes = await response.arrayBuffer()
-    // Check WASM magic number
     const magic = new Uint8Array(bytes.slice(0, 4))
     if (magic[0] !== 0x00 || magic[1] !== 0x61 || magic[2] !== 0x73 || magic[3] !== 0x6d) {
       console.warn('Invalid WASM file, using JS fallback')
