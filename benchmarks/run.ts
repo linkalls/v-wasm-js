@@ -3,12 +3,17 @@ import { stat, readdir } from 'fs/promises';
 
 const VITRIO_PORT = 4001;
 const SOLID_PORT = 4002;
+const REACT_PORT = 4003;
 
 // Serve Vitrio
 const serverVitrio = Bun.serve({
   port: VITRIO_PORT,
   fetch(req) {
     const url = new URL(req.url);
+    if (url.pathname === '/vsignal.wasm') {
+        const file = Bun.file('dist/vsignal.wasm');
+        return new Response(file, { headers: { 'Content-Type': 'application/wasm' } });
+    }
     const path = url.pathname === '/' ? '/index.html' : url.pathname;
     const filepath = `benchmarks/vitrio-app${path}`;
     const file = Bun.file(filepath);
@@ -28,7 +33,20 @@ const serverSolid = Bun.serve({
   },
 });
 
-console.log(`Servers running: Vitrio(${VITRIO_PORT}), Solid(${SOLID_PORT})`);
+// Serve React
+const serverReact = Bun.serve({
+  port: REACT_PORT,
+  fetch(req) {
+    const url = new URL(req.url);
+    const path = url.pathname === '/' ? '/index.html' : url.pathname;
+    const filepath = `benchmarks/react-app/dist${path}`;
+    const file = Bun.file(filepath);
+    return new Response(file);
+  },
+});
+
+
+console.log(`Servers running: Vitrio(${VITRIO_PORT}), Solid(${SOLID_PORT}), React(${REACT_PORT})`);
 
 async function getFileSize(path: string) {
     try {
@@ -46,6 +64,7 @@ async function runBenchmark() {
   const results = {
     vitrio: { load: 0, interact: 0, size: 0 },
     solid: { load: 0, interact: 0, size: 0 },
+    react: { load: 0, interact: 0, size: 0 },
   };
 
   // Measure Bundle Size
@@ -61,8 +80,18 @@ async function runBenchmark() {
       console.error("Error checking solid assets", e);
   }
 
+  try {
+      const files = await readdir('benchmarks/react-app/dist/assets');
+      const jsFile = files.find(f => f.endsWith('.js'));
+      if (jsFile) {
+          results.react.size = await getFileSize(`benchmarks/react-app/dist/assets/${jsFile}`);
+      }
+  } catch (e) {
+      console.error("Error checking react assets", e);
+  }
+
   // Define benchmark function
-  async function benchApp(name: string, url: string, target: 'vitrio' | 'solid') {
+  async function benchApp(name: string, url: string, target: 'vitrio' | 'solid' | 'react') {
       console.log(`Benchmarking ${name}...`);
 
       // Load Time (Average of 5)
@@ -81,8 +110,6 @@ async function runBenchmark() {
       await page.goto(url);
       await page.waitForSelector('#counter');
       // Find the button with + text.
-      // Vitrio: <button>+<button>
-      // Solid: <button>+</button>
       const btn = page.locator('button', { hasText: '+' }).first();
 
       const startInteract = performance.now();
@@ -99,6 +126,7 @@ async function runBenchmark() {
 
   await benchApp('Vitrio', `http://localhost:${VITRIO_PORT}`, 'vitrio');
   await benchApp('Solid', `http://localhost:${SOLID_PORT}`, 'solid');
+  await benchApp('React', `http://localhost:${REACT_PORT}`, 'react');
 
   console.log('\nResults:');
   console.table(results);
@@ -107,11 +135,11 @@ async function runBenchmark() {
   const md = `
 # Benchmark Results
 
-| Metric | Vitrio | SolidJS |
-|--------|--------|---------|
-| Bundle Size (bytes) | ${results.vitrio.size} | ${results.solid.size} |
-| Avg Load Time (ms) | ${results.vitrio.load.toFixed(2)} | ${results.solid.load.toFixed(2)} |
-| Interaction (100 clicks) (ms) | ${results.vitrio.interact.toFixed(2)} | ${results.solid.interact.toFixed(2)} |
+| Metric | Vitrio (WASM) | SolidJS | React |
+|--------|---------------|---------|-------|
+| Bundle Size (bytes) | ${results.vitrio.size} | ${results.solid.size} | ${results.react.size} |
+| Avg Load Time (ms) | ${results.vitrio.load.toFixed(2)} | ${results.solid.load.toFixed(2)} | ${results.react.load.toFixed(2)} |
+| Interaction (100 clicks) (ms) | ${results.vitrio.interact.toFixed(2)} | ${results.solid.interact.toFixed(2)} | ${results.react.interact.toFixed(2)} |
 
 *Run on ${new Date().toISOString()}*
 `;
@@ -120,6 +148,7 @@ async function runBenchmark() {
   await browser.close();
   serverVitrio.stop();
   serverSolid.stop();
+  serverReact.stop();
   process.exit(0);
 }
 

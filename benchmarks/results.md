@@ -1,10 +1,10 @@
 
 # Benchmark Results
 
-| Metric | Vitrio | SolidJS |
-|--------|--------|---------|
-| Bundle Size (bytes) | 7164 | 12970 |
-| Avg Load Time (ms) | 89.08 | 60.85 |
-| Interaction (100 clicks) (ms) | 7453.05 | 4991.01 |
+| Metric | Vitrio (WASM) | SolidJS | React |
+|--------|---------------|---------|-------|
+| Bundle Size (bytes) | 7902 | 12970 | 143200 |
+| Avg Load Time (ms) | 61.08 | 48.30 | 61.21 |
+| Interaction (100 clicks) (ms) | 3800.13 | 3539.49 | 3347.23 |
 
-*Run on 2026-01-14T18:00:03.282Z*
+*Run on 2026-01-14T22:07:54.282Z*

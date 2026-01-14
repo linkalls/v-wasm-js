@@ -12,6 +12,10 @@ export interface VAtom<T> {
   _brand: 'v-atom'
   init: T
   read?: (get: Getter) => T
+  // WASM integration
+  id?: number
+  // Optimization: Direct state access
+  _state?: VAtomState<T>
 }
 
 interface VAtomState<T> {
@@ -25,79 +29,125 @@ interface VAtomState<T> {
 let currentComponent: (() => void) | null = null
 
 // === Store (Global State Container) ===
-const atomStates = new WeakMap<VAtom<any>, VAtomState<any>>()
+// Optimization A: Removed WeakMap, state is on atom._state
+
+// === WASM Integration ===
+interface VWasmExports {
+  init_graph: () => number // returns pointer
+  create_node: (g: number) => number
+  add_dependency: (g: number, dependent: number, dependency: number) => void
+  propagate: (g: number, source: number) => number // returns count
+  get_update_buffer_ptr: (g: number) => number // returns pointer
+  memory: WebAssembly.Memory
+}
+
+let wasmExports: VWasmExports | null = null
+let graphPtr: number = 0
+let updateBufferPtr: number = 0 // Optimization C: Cache buffer pointer
+
+export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
+  if (wasmExports) return
+
+  try {
+    const response = await fetch(wasmPath)
+    if (!response.ok) {
+      console.warn('WASM not available, falling back to pure JS mode')
+      return
+    }
+    const bytes = await response.arrayBuffer()
+    const result = await WebAssembly.instantiate(bytes, {})
+    wasmExports = result.instance.exports as unknown as VWasmExports
+
+    // Initialize graph in WASM
+    graphPtr = wasmExports.init_graph()
+    updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
+    console.log('V-Signal WASM initialized')
+  } catch (error) {
+    console.warn('Failed to load WASM, using pure JS mode:', error)
+  }
+}
+
+// Optimization B: Array for ID lookup
+const idToAtomArray: VAtom<any>[] = []
+
+// Helper to interact with WASM graph
+function registerNodeInWasm(atom: VAtom<any>) {
+  if (wasmExports && typeof atom.id === 'undefined') {
+    atom.id = wasmExports.create_node(graphPtr)
+    idToAtomArray[atom.id] = atom
+  }
+}
+
+function registerDependencyInWasm(dependent: VAtom<any>, dependency: VAtom<any>) {
+  if (wasmExports && typeof dependent.id === 'number' && typeof dependency.id === 'number') {
+    wasmExports.add_dependency(graphPtr, dependent.id, dependency.id)
+  }
+}
 
 function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
-  let state = atomStates.get(atom)
-  if (!state) {
-    const deps = new Set<VAtom<any>>()
-    const trackedGet: Getter = (a) => {
-      deps.add(a)
-      return getAtomState(a).value
-    }
-    const initial = atom.read 
-      ? atom.read(trackedGet)
-      : atom.init
-    state = {
-      value: initial,
-      subscribers: new Set(),
-      deps,
-      dependents: new Set()
-    }
-    atomStates.set(atom, state)
-    // Register this atom as a dependent of its dependencies
-    deps.forEach(dep => {
-      getAtomState(dep).dependents.add(atom)
-    })
+  // Optimization A: Direct property access
+  if (atom._state) return atom._state
+
+  const deps = new Set<VAtom<any>>()
+  const trackedGet: Getter = (a) => {
+    deps.add(a)
+    // Direct recursive access
+    if (a._state) return a._state.value
+    return getAtomState(a).value
   }
+
+  // Lazy registration for WASM
+  registerNodeInWasm(atom)
+
+  const initial = atom.read
+    ? atom.read(trackedGet)
+    : atom.init
+
+  const state: VAtomState<T> = {
+    value: initial,
+    subscribers: new Set(),
+    deps,
+    dependents: new Set()
+  }
+  atom._state = state
+
+  // Register this atom as a dependent of its dependencies
+  deps.forEach(dep => {
+    getAtomState(dep).dependents.add(atom)
+    // WASM Dependency Registration
+    registerNodeInWasm(dep)
+    registerDependencyInWasm(atom, dep)
+  })
+
   return state
 }
 
 // === Core API ===
 
-/**
- * Create a reactive value
- * @example
- * const count = v(0)
- * const name = v('hello')
- * const user = v({ id: 1, name: 'John' })
- */
 export function v<T>(initial: T): VAtom<T> {
-  return {
+  const atom: VAtom<T> = {
     _brand: 'v-atom',
     init: initial
   }
+  return atom
 }
 
-/**
- * Create a derived value from other atoms
- * @example
- * const count = v(0)
- * const doubled = derive(get => get(count) * 2)
- */
 export function derive<T>(read: (get: Getter) => T): VAtom<T> {
   const atom: VAtom<T> = {
     _brand: 'v-atom',
     init: undefined as T,
     read
   }
-  derivedAtoms.add(atom)
   return atom
 }
 
-// Alias for backwards compatibility
 v.from = derive
 
 // === Store Operations ===
 
-/**
- * Get atom value
- * If called inside a render context (e.g., reactive text node), auto-subscribes
- */
 export function get<T>(atom: VAtom<T>): T {
   const state = getAtomState(atom)
   
-  // Auto-subscribe if inside render context
   if (currentComponent) {
     state.subscribers.add(currentComponent)
   }
@@ -105,9 +155,6 @@ export function get<T>(atom: VAtom<T>): T {
   return state.value
 }
 
-/**
- * Set atom value
- */
 export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
   const state = getAtomState(atom)
   const newValue = typeof value === 'function'
@@ -116,25 +163,26 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
   
   if (state.value !== newValue) {
     state.value = newValue
-    // Update derived atoms FIRST so they're in sync
-    updateDerived(atom)
-    // Then notify subscribers (run each subscriber inside render context)
+
+    // Use WASM for propagation if available
+    if (wasmExports && typeof atom.id === 'number') {
+      updateDerivedWasm(atom)
+    } else {
+      updateDerived(atom)
+    }
+
+    // Notify direct subscribers
     state.subscribers.forEach(fn => withRenderContext(fn))
   }
 }
 
-/**
- * Subscribe to atom changes
- */
 export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
   const state = getAtomState(atom)
   state.subscribers.add(callback)
   return () => state.subscribers.delete(callback)
 }
 
-// === Derived Atom Updates ===
-const derivedAtoms = new Set<VAtom<any>>()
-
+// === Derived Atom Updates (JS Fallback) ===
 function updateDerived(source: VAtom<any>): void {
   const sourceState = getAtomState(source)
   const visited = new Set<VAtom<any>>()
@@ -152,27 +200,50 @@ function updateDerived(source: VAtom<any>): void {
       if (state.value !== newValue) {
         state.value = newValue
         state.subscribers.forEach(fn => withRenderContext(fn))
-        // Add dependents of this atom to the queue
         state.dependents.forEach(dep => queue.push(dep))
       }
     }
   }
 }
 
-// Note: derived atom registration is now done in derive() function
+// === Derived Atom Updates (WASM) ===
+
+function updateDerivedWasm(source: VAtom<any>): void {
+  if (!wasmExports || typeof source.id !== 'number') return
+
+  const count = wasmExports.propagate(graphPtr, source.id)
+  if (count > 0) {
+    // Optimization C: Use cached pointer
+    const ids = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, count)
+
+    for (let i = 0; i < count; i++) {
+      const id = ids[i]
+      // Optimization B: Array access
+      const atom = idToAtomArray[id]
+      if (atom && atom.read) {
+        // Optimization A: Direct access
+        const state = atom._state!
+
+        // Re-evaluate
+        // Note: For extreme speed, we might want to optimize the `read` function's `get` arg too
+        // but `getAtomState` is now fast.
+        const newValue = atom.read((a) => a._state ? a._state.value : getAtomState(a).value)
+
+        if (state.value !== newValue) {
+          state.value = newValue
+          state.subscribers.forEach(fn => withRenderContext(fn))
+        }
+      }
+    }
+  }
+}
 
 // === Hook for TSX ===
 type UseAtomResult<T> = [T, (value: T | ((prev: T) => T)) => void]
 
-/**
- * Use atom in components - triggers re-render on change
- * @example
- * const [count, setCount] = use(countAtom)
- */
 export function use<T>(atom: VAtom<T>): UseAtomResult<T> {
   const state = getAtomState(atom)
   
-  // Auto-subscribe if inside component render
   if (currentComponent) {
     state.subscribers.add(currentComponent)
   }
@@ -183,21 +254,14 @@ export function use<T>(atom: VAtom<T>): UseAtomResult<T> {
   ]
 }
 
-/**
- * Read-only hook
- */
 export function useValue<T>(atom: VAtom<T>): T {
   return use(atom)[0]
 }
 
-/**
- * Write-only hook
- */
 export function useSet<T>(atom: VAtom<T>): (value: T | ((prev: T) => T)) => void {
   return use(atom)[1]
 }
 
-// === Component Render Context ===
 export function withRenderContext(component: () => void): void {
   currentComponent = component
   try {
@@ -207,60 +271,7 @@ export function withRenderContext(component: () => void): void {
   }
 }
 
-// === WASM Integration (for future heavy computations) ===
-interface VWasm {
-  add: (a: number, b: number) => number
-  sub: (a: number, b: number) => number
-  fib: (n: number) => number
-}
-
-// JS fallback implementation
-const jsFallback: VWasm = {
-  add: (a, b) => a + b,
-  sub: (a, b) => a - b,
-  fib: (n) => {
-    if (n <= 1) return n
-    let a = 0, b = 1
-    for (let i = 2; i <= n; i++) {
-      const c = a + b
-      a = b
-      b = c
-    }
-    return b
-  }
-}
-
-let wasmModule: VWasm | null = null
-
-export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<VWasm> {
-  if (wasmModule) return wasmModule
-  
-  try {
-    const response = await fetch(wasmPath)
-    if (!response.ok) {
-      console.warn('WASM not available, using JS fallback')
-      wasmModule = jsFallback
-      return wasmModule
-    }
-    const bytes = await response.arrayBuffer()
-    // Check WASM magic number
-    const magic = new Uint8Array(bytes.slice(0, 4))
-    if (magic[0] !== 0x00 || magic[1] !== 0x61 || magic[2] !== 0x73 || magic[3] !== 0x6d) {
-      console.warn('Invalid WASM file, using JS fallback')
-      wasmModule = jsFallback
-      return wasmModule
-    }
-    const result = await WebAssembly.instantiate(bytes, {})
-    wasmModule = result.instance.exports as unknown as VWasm
-    return wasmModule
-  } catch (error) {
-    console.warn('Failed to load WASM, using JS fallback:', error)
-    wasmModule = jsFallback
-    return wasmModule
-  }
-}
-
-export function wasm(): VWasm {
-  if (!wasmModule) throw new Error('WASM not initialized. Call initWasm() first.')
-  return wasmModule
+// Backwards compatibility/Exports for future use
+export function wasm() {
+    return wasmExports
 }

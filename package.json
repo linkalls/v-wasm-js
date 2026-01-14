@@ -30,7 +30,8 @@
     "dev": "bun run examples/counter/serve.ts",
     "build": "bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
-    "prepublishOnly": "bun run build && bun run build:types"
+    "build:wasm": "./vlang/v -prod -b wasm -d no_backtrace -o dist/vsignal.wasm src/vsignal/signal.v",
+    "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types"
   },
   "keywords": [
     "reactive",
