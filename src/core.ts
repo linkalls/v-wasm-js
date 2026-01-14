@@ -20,7 +20,7 @@ export interface VAtom<T> {
 
 interface VAtomState<T> {
   value: T
-  subscribers: Set<Subscriber>
+  subscribers: Subscriber[]
   deps: Set<VAtom<any>>
   dependents: Set<VAtom<any>>  // atoms that depend on this atom
 }
@@ -112,7 +112,7 @@ function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
 
   const state: VAtomState<T> = {
     value: initial,
-    subscribers: new Set(),
+    subscribers: [],
     deps,
     dependents: new Set()
   }
@@ -155,8 +155,8 @@ v.from = derive
 export function get<T>(atom: VAtom<T>): T {
   const state = getAtomState(atom)
   
-  if (currentComponent) {
-    state.subscribers.add(currentComponent)
+  if (currentComponent && !state.subscribers.includes(currentComponent)) {
+    state.subscribers.push(currentComponent)
   }
   
   return state.value
@@ -185,8 +185,11 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
 
 export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
   const state = getAtomState(atom)
-  state.subscribers.add(callback)
-  return () => state.subscribers.delete(callback)
+  state.subscribers.push(callback)
+  return () => {
+    const idx = state.subscribers.indexOf(callback)
+    if (idx !== -1) state.subscribers.splice(idx, 1)
+  }
 }
 
 // === Derived Atom Updates (JS Fallback) ===
@@ -221,8 +224,12 @@ function updateDerivedWasm(source: VAtom<any>): void {
   const count = wasmExports.propagate(graphPtr, source.id)
   if (count > 0) {
     // Optimization C: Use cached pointer
-    if (!cachedUpdateBuffer || cachedUpdateBuffer.buffer !== wasmExports.memory.buffer) {
-      cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
+    // Ensure buffer covers the full count (resize if needed)
+    if (!cachedUpdateBuffer ||
+        cachedUpdateBuffer.buffer !== wasmExports.memory.buffer ||
+        cachedUpdateBuffer.length < count) {
+      const size = Math.max(UPDATE_BUFFER_SIZE, count)
+      cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, size)
     }
 
     for (let i = 0; i < count; i++) {

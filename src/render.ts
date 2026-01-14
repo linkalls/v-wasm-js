@@ -18,9 +18,17 @@ export function render(component: VNode | (() => VNode), container: Element | nu
   
   // Render function: clears container and appends result
   const doRender = () => {
-    container.innerHTML = ''
     const result = typeof component === 'function' ? component() : component
+
+    // Simple structural diff: if the result is the same node (or null/undefined), do nothing (it updated itself).
+    // If it's a new node but the container has it as the only child, also assume it updated itself (common in this framework).
+    // Only clear and append if we strictly need to replace the root.
     if (result instanceof Node) {
+      if (container.firstChild === result && container.childNodes.length === 1) {
+        // No-op: The node updated itself in place
+        return
+      }
+      container.innerHTML = ''
       container.appendChild(result)
     }
   }
