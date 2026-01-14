@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-    "publishConfig": {
+  "publishConfig": {
     "access": "public"
   },
   "exports": {
@@ -45,6 +45,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
+    "playwright": "^1.57.0",
     "typescript": "^5"
   }
 }
