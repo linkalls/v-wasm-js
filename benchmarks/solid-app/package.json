@@ -1,0 +1,16 @@
+{
+  "name": "solid-bench-app",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "solid-js": "^1.8.15"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "vite-plugin-solid": "^2.10.0",
+    "typescript": "^5.0.0"
+  }
+}
