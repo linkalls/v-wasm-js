@@ -75,6 +75,8 @@ const idToAtomArray: VAtom<any>[] = []
 
 const fastGet: Getter = (a) => a._state ? a._state.value : getAtomState(a).value
 
+const runSubscriber = (fn: Subscriber) => withRenderContext(fn)
+
 // Helper to interact with WASM graph
 function registerNodeInWasm(atom: VAtom<any>) {
   if (wasmExports && typeof atom.id === 'undefined') {
@@ -177,7 +179,7 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
     }
 
     // Notify direct subscribers
-    state.subscribers.forEach(fn => withRenderContext(fn))
+    state.subscribers.forEach(runSubscriber)
   }
 }
 
@@ -204,7 +206,7 @@ function updateDerived(source: VAtom<any>): void {
       
       if (state.value !== newValue) {
         state.value = newValue
-        state.subscribers.forEach(fn => withRenderContext(fn))
+        state.subscribers.forEach(runSubscriber)
         state.dependents.forEach(dep => queue.push(dep))
       }
     }
@@ -238,7 +240,7 @@ function updateDerivedWasm(source: VAtom<any>): void {
 
         if (state.value !== newValue) {
           state.value = newValue
-          state.subscribers.forEach(fn => withRenderContext(fn))
+          state.subscribers.forEach(runSubscriber)
         }
       }
     }
