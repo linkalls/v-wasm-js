@@ -131,7 +131,7 @@ function TodoList() {
 ## Fragment
 
 ```tsx
-import { Fragment } from 'vitrio'
+import { Fragment } from '@potetotown/vitrio'
 
 function List() {
   return (

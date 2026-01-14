@@ -102,7 +102,7 @@ Use functions in JSX for auto-updating text:
 ## Control Flow
 
 ```tsx
-import { Show, For } from 'vitrio'
+import { Show, For } from '@potetotown/vitrio'
 
 // Conditional
 <Show when={isLoggedIn}>

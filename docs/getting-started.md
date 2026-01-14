@@ -40,7 +40,7 @@ bun add @potetotown/vitrio
 ### 3. main.tsx
 
 ```tsx
-import { v, derive, get, set, render } from 'vitrio'
+import { v, derive, get, set, render } from '@potetotown/vitrio'
 
 // 状態定義
 const count = v(0)
