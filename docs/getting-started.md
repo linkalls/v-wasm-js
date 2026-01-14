@@ -16,7 +16,7 @@ bun add @potetotown/vitrio
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "vitrio",
+    "jsxImportSource": "@potetotown/vitrio",
     "moduleResolution": "bundler"
   }
 }

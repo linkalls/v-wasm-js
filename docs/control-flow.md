@@ -5,7 +5,7 @@
 ## Show - 条件付きレンダリング
 
 ```tsx
-import { Show } from 'vitrio'
+import { Show } from '@potetotown/vitrio'
 
 const isLoggedIn = v(false)
 
