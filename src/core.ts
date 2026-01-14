@@ -18,6 +18,7 @@ interface VAtomState<T> {
   value: T
   subscribers: Set<Subscriber>
   deps: Set<VAtom<any>>
+  dependents: Set<VAtom<any>>  // atoms that depend on this atom
 }
 
 // === Render Context ===
@@ -29,15 +30,25 @@ const atomStates = new WeakMap<VAtom<any>, VAtomState<any>>()
 function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
   let state = atomStates.get(atom)
   if (!state) {
+    const deps = new Set<VAtom<any>>()
+    const trackedGet: Getter = (a) => {
+      deps.add(a)
+      return getAtomState(a).value
+    }
     const initial = atom.read 
-      ? atom.read((a) => getAtomState(a).value)
+      ? atom.read(trackedGet)
       : atom.init
     state = {
       value: initial,
       subscribers: new Set(),
-      deps: new Set()
+      deps,
+      dependents: new Set()
     }
     atomStates.set(atom, state)
+    // Register this atom as a dependent of its dependencies
+    deps.forEach(dep => {
+      getAtomState(dep).dependents.add(atom)
+    })
   }
   return state
 }
@@ -125,26 +136,27 @@ export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
 const derivedAtoms = new Set<VAtom<any>>()
 
 function updateDerived(source: VAtom<any>): void {
-  derivedAtoms.forEach(atom => {
+  const sourceState = getAtomState(source)
+  const visited = new Set<VAtom<any>>()
+  const queue = [...sourceState.dependents]
+  
+  while (queue.length > 0) {
+    const atom = queue.shift()!
+    if (visited.has(atom)) continue
+    visited.add(atom)
+    
     if (atom.read) {
       const state = getAtomState(atom)
-      const deps = new Set<VAtom<any>>()
-      
-      // Track dependencies during read
-      const trackedGet: Getter = (a) => {
-        deps.add(a)
-        return getAtomState(a).value
-      }
-      
-      const newValue = atom.read(trackedGet)
-      state.deps = deps
+      const newValue = atom.read((a) => getAtomState(a).value)
       
       if (state.value !== newValue) {
         state.value = newValue
         state.subscribers.forEach(fn => withRenderContext(fn))
+        // Add dependents of this atom to the queue
+        state.dependents.forEach(dep => queue.push(dep))
       }
     }
-  })
+  }
 }
 
 // Note: derived atom registration is now done in derive() function
@@ -202,16 +214,50 @@ interface VWasm {
   fib: (n: number) => number
 }
 
+// JS fallback implementation
+const jsFallback: VWasm = {
+  add: (a, b) => a + b,
+  sub: (a, b) => a - b,
+  fib: (n) => {
+    if (n <= 1) return n
+    let a = 0, b = 1
+    for (let i = 2; i <= n; i++) {
+      const c = a + b
+      a = b
+      b = c
+    }
+    return b
+  }
+}
+
 let wasmModule: VWasm | null = null
 
-export async function initWasm(): Promise<VWasm> {
+export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<VWasm> {
   if (wasmModule) return wasmModule
   
-  const response = await fetch('/vsignal.wasm')
-  const bytes = await response.arrayBuffer()
-  const result = await WebAssembly.instantiate(bytes, {})
-  wasmModule = result.instance.exports as unknown as VWasm
-  return wasmModule
+  try {
+    const response = await fetch(wasmPath)
+    if (!response.ok) {
+      console.warn('WASM not available, using JS fallback')
+      wasmModule = jsFallback
+      return wasmModule
+    }
+    const bytes = await response.arrayBuffer()
+    // Check WASM magic number
+    const magic = new Uint8Array(bytes.slice(0, 4))
+    if (magic[0] !== 0x00 || magic[1] !== 0x61 || magic[2] !== 0x73 || magic[3] !== 0x6d) {
+      console.warn('Invalid WASM file, using JS fallback')
+      wasmModule = jsFallback
+      return wasmModule
+    }
+    const result = await WebAssembly.instantiate(bytes, {})
+    wasmModule = result.instance.exports as unknown as VWasm
+    return wasmModule
+  } catch (error) {
+    console.warn('Failed to load WASM, using JS fallback:', error)
+    wasmModule = jsFallback
+    return wasmModule
+  }
 }
 
 export function wasm(): VWasm {
