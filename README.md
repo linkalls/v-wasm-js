@@ -5,12 +5,27 @@
 [![npm version](https://badge.fury.io/js/@potetotown%2Fvitrio.svg)](https://www.npmjs.com/package/@potetotown/vitrio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+English | [日本語](./README.ja.md)
+
+## 🚀 Performance
+
+**Vitrio outperforms Solid.js by up to 82%** on reactivity benchmarks:
+
+| Metric | Vitrio | SolidJS | React |
+|--------|--------|---------|-------|
+| Bundle Size | 8KB | 13KB | 144KB |
+| 100 Clicks (ms) | **11.92** | 16.41 | 17.35 |
+| List Updates (ms) | **12.72** | 16.19 | 44.24 |
+
+> 📊 See [benchmarks/results.md](./benchmarks/results.md) for full details.
+
 ## Features
 
 - 🎯 **Minimal API** - Just `v()`, `derive()`, `get()`, `set()`
 - ⚡ **Reactive** - Fine-grained updates with automatic dependency tracking
+- 🏎️ **Solid-style DOM** - Create once, update bindings (no VDOM diffing)
 - 🎨 **React-like TSX** - Write components naturally with JSX
-- 📦 **Tiny** - ~7KB minified
+- 📦 **Tiny** - ~8KB minified
 - 🔧 **Bun-first** - Built for modern tooling
 
 ## Installation
@@ -87,6 +102,16 @@ Use functions in JSX for auto-updating text:
 <span>{() => get(count)}</span>  // Re-renders when count changes
 ```
 
+### Reactive Attributes
+
+Attributes can also be reactive functions:
+
+```tsx
+<div class={() => get(isActive) ? 'active' : ''}>...</div>
+<input disabled={() => get(isLoading)} />
+<div style={() => ({ color: get(themeColor) })}>...</div>
+```
+
 ## API Reference
 
 | API | Description |
@@ -109,8 +134,8 @@ import { Show, For } from '@potetotown/vitrio'
   <Dashboard />
 </Show>
 
-// Lists
-<For each={items}>
+// Lists with keyed diffing
+<For each={items} key={(item) => item.id}>
   {(item) => <li>{item.name}</li>}
 </For>
 ```
@@ -121,32 +146,38 @@ import { Show, For } from '@potetotown/vitrio'
 - [Core API](./docs/api.md)
 - [JSX & Components](./docs/jsx.md)
 - [Control Flow](./docs/control-flow.md)
+- [Benchmarks](./docs/benchmarks.md)
 
-## Examples
+## Examples & Development
 
 ```bash
+# Install dependencies
+bun install
+
 # Run counter demo
 bun run dev
+
+# Build library
+bun run build
+
+# Run benchmarks (Bun - recommended)
+bun benchmarks/run.ts
+
+# Run benchmarks (Node.js alternative)
+node benchmarks/run-node.mjs
 ```
 
 See [examples/counter](./examples/counter) for a complete demo.
-
-## Development
-
-```bash
-bun install        # Install deps
-bun run build      # Build library
-bun run dev        # Run demo
-```
 
 ## Comparison
 
 | Feature | Vitrio | React | Solid | Jotai |
 |---------|--------|-------|-------|-------|
-| Bundle size | ~7KB | ~40KB | ~7KB | ~3KB |
+| Bundle size | ~8KB | ~40KB | ~13KB | ~3KB |
 | No virtual DOM | ✅ | ❌ | ✅ | - |
 | Fine-grained | ✅ | ❌ | ✅ | ✅ |
 | TSX support | ✅ | ✅ | ✅ | ✅ |
+| 100-click speed | 🥇 | 🥉 | 🥈 | - |
 
 ## License
 

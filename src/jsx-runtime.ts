@@ -57,7 +57,7 @@ function createElement(
   // Create element
   const el = document.createElement(type)
   
-  // Apply props
+  // Apply props with reactive binding support
   if (props) {
     for (const [key, value] of Object.entries(props)) {
       if (key === 'children') continue
@@ -66,12 +66,40 @@ function createElement(
         // Event handlers: onClick -> click
         const event = key.slice(2).toLowerCase()
         el.addEventListener(event, value)
+      } else if (key === 'ref') {
+        value(el)
+      } else if (typeof value === 'function') {
+        // Reactive binding - subscribe to changes
+        const updateProp = () => {
+          withRenderContext(() => {
+            const result = value()
+            if (key === 'class' || key === 'className') {
+              el.className = String(result ?? '')
+            } else if (key === 'style') {
+              if (typeof result === 'object' && result !== null) {
+                // Reset and apply new styles
+                el.removeAttribute('style')
+                Object.assign(el.style, result)
+              } else {
+                el.setAttribute('style', String(result ?? ''))
+              }
+            } else {
+              // Generic attribute
+              if (result == null || result === false) {
+                el.removeAttribute(key)
+              } else if (result === true) {
+                el.setAttribute(key, '')
+              } else {
+                el.setAttribute(key, String(result))
+              }
+            }
+          })
+        }
+        updateProp()
       } else if (key === 'class' || key === 'className') {
         el.className = value
       } else if (key === 'style' && typeof value === 'object') {
         Object.assign(el.style, value)
-      } else if (key === 'ref') {
-        value(el)
       } else {
         el.setAttribute(key, String(value))
       }

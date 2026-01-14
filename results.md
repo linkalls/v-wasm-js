@@ -10,6 +10,6 @@
 ## Performance Comparison
 
 - **Counter (100 clicks)**: Vitrio is 37.7% faster than Solid, 45.6% faster than React
-- **List Updates**: Vitrio is 27.3% faster than Solid, 247.8% faster than React
+- **List Updates**: Vitrio is 27.3% faster than Solid
 
 *Run on 2026-01-14T23:51:32.434Z*

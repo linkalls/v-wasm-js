@@ -1,6 +1,6 @@
 {
   "name": "@potetotown/vitrio",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Ultra-minimal reactive UI framework with derive() API",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -24,14 +24,18 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "./dist/vsignal.wasm"
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
     "build": "bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
-    "build:wasm": "./vlang/v -prod -b wasm -d no_backtrace -o dist/vsignal.wasm src/vsignal/signal.v",
-    "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types"
+    "build:wasm": "v -prod -b wasm -d no_backtrace -o dist/vsignal.wasm src/vsignal/signal.v",
+    "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types",
+    "prepare": "bun run build:wasm && bun run build && bun run build:types",
+    "prepack": "bun ./scripts/ensure-wasm.js",
+    "check:wasm": "bun ./scripts/ensure-wasm.js"
   },
   "keywords": [
     "reactive",
