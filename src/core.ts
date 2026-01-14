@@ -44,6 +44,8 @@ interface VWasmExports {
 let wasmExports: VWasmExports | null = null
 let graphPtr: number = 0
 let updateBufferPtr: number = 0 // Optimization C: Cache buffer pointer
+let cachedUpdateBuffer: Int32Array | null = null
+const UPDATE_BUFFER_SIZE = 4096
 
 export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
   if (wasmExports) return
@@ -61,6 +63,7 @@ export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
     // Initialize graph in WASM
     graphPtr = wasmExports.init_graph()
     updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
+    cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
     console.log('V-Signal WASM initialized')
   } catch (error) {
     console.warn('Failed to load WASM, using pure JS mode:', error)
@@ -69,6 +72,8 @@ export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
 
 // Optimization B: Array for ID lookup
 const idToAtomArray: VAtom<any>[] = []
+
+const fastGet: Getter = (a) => a._state ? a._state.value : getAtomState(a).value
 
 // Helper to interact with WASM graph
 function registerNodeInWasm(atom: VAtom<any>) {
@@ -214,10 +219,12 @@ function updateDerivedWasm(source: VAtom<any>): void {
   const count = wasmExports.propagate(graphPtr, source.id)
   if (count > 0) {
     // Optimization C: Use cached pointer
-    const ids = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, count)
+    if (!cachedUpdateBuffer || cachedUpdateBuffer.buffer !== wasmExports.memory.buffer) {
+      cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
+    }
 
     for (let i = 0; i < count; i++) {
-      const id = ids[i]
+      const id = cachedUpdateBuffer[i]
       // Optimization B: Array access
       const atom = idToAtomArray[id]
       if (atom && atom.read) {
@@ -227,7 +234,7 @@ function updateDerivedWasm(source: VAtom<any>): void {
         // Re-evaluate
         // Note: For extreme speed, we might want to optimize the `read` function's `get` arg too
         // but `getAtomState` is now fast.
-        const newValue = atom.read((a) => a._state ? a._state.value : getAtomState(a).value)
+        const newValue = atom.read(fastGet)
 
         if (state.value !== newValue) {
           state.value = newValue
