@@ -28,6 +28,25 @@ interface VAtomState<T> {
 // === Render Context ===
 let currentComponent: (() => void) | null = null
 
+// === Batching ===
+const pendingSubscribers = new Set<Subscriber>()
+let flushPending = false
+
+function flush() {
+  flushPending = false
+  const copy = [...pendingSubscribers]
+  pendingSubscribers.clear()
+  copy.forEach(fn => withRenderContext(fn))
+}
+
+function scheduleUpdates(subscribers: Set<Subscriber>) {
+  subscribers.forEach(sub => pendingSubscribers.add(sub))
+  if (!flushPending) {
+    flushPending = true
+    queueMicrotask(flush)
+  }
+}
+
 // === Store (Global State Container) ===
 // Optimization A: Removed WeakMap, state is on atom._state
 
@@ -177,7 +196,7 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
     }
 
     // Notify direct subscribers
-    state.subscribers.forEach(fn => withRenderContext(fn))
+    scheduleUpdates(state.subscribers)
   }
 }
 
@@ -204,7 +223,7 @@ function updateDerived(source: VAtom<any>): void {
       
       if (state.value !== newValue) {
         state.value = newValue
-        state.subscribers.forEach(fn => withRenderContext(fn))
+        scheduleUpdates(state.subscribers)
         state.dependents.forEach(dep => queue.push(dep))
       }
     }
@@ -238,7 +257,7 @@ function updateDerivedWasm(source: VAtom<any>): void {
 
         if (state.value !== newValue) {
           state.value = newValue
-          state.subscribers.forEach(fn => withRenderContext(fn))
+          scheduleUpdates(state.subscribers)
         }
       }
     }

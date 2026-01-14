@@ -109,13 +109,17 @@ async function runBenchmark() {
       // Interaction Time (Click 100 times)
       await page.goto(url);
       await page.waitForSelector('#counter');
-      // Find the button with + text.
-      const btn = page.locator('button', { hasText: '+' }).first();
 
       const startInteract = performance.now();
-      for(let i=0; i<100; i++) {
-          await btn.click();
-      }
+      await page.evaluate(() => {
+          const btns = Array.from(document.querySelectorAll('button'));
+          const btn = btns.find(b => b.textContent?.includes('+'));
+          if (btn) {
+              for(let i=0; i<100; i++) {
+                  (btn as HTMLElement).click();
+              }
+          }
+      });
       const endInteract = performance.now();
       results[target].interact = endInteract - startInteract;
 
