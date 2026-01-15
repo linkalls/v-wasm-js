@@ -108,18 +108,29 @@ export async function initWasm(wasmPath?: string): Promise<void> {
 }
 
 const idToAtomArray: VAtom<any>[] = []
+const pendingAtoms = new Set<VAtom<any>>()
+const pendingDeps: [VAtom<any>, VAtom<any>][] = []
+
 const fastGet: Getter = (a) => a._state ? a._state.value : getAtomState(a).value
 
 function registerNodeInWasm(atom: VAtom<any>) {
-  if (wasmExports && typeof atom.id === 'undefined') {
-    atom.id = wasmExports.create_node(graphPtr)
-    idToAtomArray[atom.id] = atom
+  if (wasmExports) {
+    if (typeof atom.id === 'undefined') {
+      atom.id = wasmExports.create_node(graphPtr)
+      idToAtomArray[atom.id] = atom
+    }
+  } else {
+    pendingAtoms.add(atom)
   }
 }
 
 function registerDependencyInWasm(dependent: VAtom<any>, dependency: VAtom<any>) {
-  if (wasmExports && typeof dependent.id === 'number' && typeof dependency.id === 'number') {
-    wasmExports.add_dependency(graphPtr, dependent.id, dependency.id)
+  if (wasmExports) {
+    if (typeof dependent.id === 'number' && typeof dependency.id === 'number') {
+      wasmExports.add_dependency(graphPtr, dependent.id, dependency.id)
+    }
+  } else {
+    pendingDeps.push([dependent, dependency])
   }
 }
 
