@@ -8,8 +8,9 @@ export { v, derive, get, set, subscribe, use, useValue, useSet, initWasm, wasm, 
 export type { VAtom } from './core'
 
 // JSX
-export { jsx, jsxs, jsxDEV, h, Fragment } from './jsx-runtime'
-export type { VNode, Props, Child, Children } from './jsx-runtime'
+// Note: JSX exports are available via 'vitrio/jsx-runtime' or 'vitrio/jsx-dev-runtime'
+// export { jsx, jsxs, jsxDEV, h, Fragment } from './jsx-runtime'
+// export type { VNode, Props, Child, Children } from './jsx-runtime'
 
 // Flow Control
 export { Show, For, Switch, Match } from './flow'

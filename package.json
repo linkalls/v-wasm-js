@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
-    "build": "bun run embed:wasm && bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify",
+    "build": "bun run embed:wasm && bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify --splitting",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "build:wasm": "v -prod -gc none -b wasm -d no_backtrace -d no_stdio -o dist/vsignal.wasm src/vsignal/signal.v && bun run embed:wasm",
     "embed:wasm": "bun run scripts/embed-wasm.ts",
