@@ -136,7 +136,7 @@ async function runBenchmark() {
       await page.waitForSelector('#counter', { timeout: 10000 });
       
       const startList = performance.now();
-      await page.evaluate(() => {
+      await page.evaluate(async () => {
           // Find the todo input and add button
           const input = document.querySelector('input[placeholder*="todo"]') as HTMLInputElement;
           const addBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Add');
@@ -148,6 +148,9 @@ async function runBenchmark() {
                   input.dispatchEvent(new Event('input', { bubbles: true }));
                   (addBtn as HTMLElement).click();
               }
+
+              // Allow batching/render to settle
+              await new Promise(r => setTimeout(r, 0));
               
               // Remove 25 items (every other one)
               const removeButtons = Array.from(document.querySelectorAll('button')).filter(b => b.textContent === '×');
