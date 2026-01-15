@@ -51,12 +51,15 @@ function scheduleUpdates(subscribers: Set<Subscriber>) {
 // Optimization A: Removed WeakMap, state is on atom._state
 
 // === WASM Integration ===
+import { wasmBase64 } from './generated-wasm'
+
 interface VWasmExports {
   init_graph: () => number // returns pointer
   create_node: (g: number) => number
   add_dependency: (g: number, dependent: number, dependency: number) => void
   propagate: (g: number, source: number) => number // returns count
   get_update_buffer_ptr: (g: number) => number // returns pointer
+  _start: () => void
   memory: WebAssembly.Memory
 }
 
@@ -66,18 +69,37 @@ let updateBufferPtr: number = 0 // Optimization C: Cache buffer pointer
 let cachedUpdateBuffer: Int32Array | null = null
 const UPDATE_BUFFER_SIZE = 4096
 
-export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
+export async function initWasm(wasmPath?: string): Promise<void> {
   if (wasmExports) return
 
   try {
-    const response = await fetch(wasmPath)
-    if (!response.ok) {
-      console.warn('WASM not available, falling back to pure JS mode')
-      return
+    let bytes: BufferSource
+    if (wasmPath) {
+      const response = await fetch(wasmPath)
+      if (!response.ok) {
+        console.warn('WASM not available at ' + wasmPath + ', falling back to pure JS mode')
+        return
+      }
+      bytes = await response.arrayBuffer()
+    } else {
+      bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0))
     }
-    const bytes = await response.arrayBuffer()
-    const result = await WebAssembly.instantiate(bytes, {})
+
+    const imports = {
+      wasi_snapshot_preview1: {
+        fd_write: (fd: number, iovs: number, iovs_len: number, nwritten: number) => 0,
+        proc_exit: (code: number) => {},
+      }
+    };
+
+    // Fallback for older builds or if imports are not needed (though inspection says they are)
+    // const result = await WebAssembly.instantiate(bytes, {})
+    const result = await WebAssembly.instantiate(bytes, imports)
     wasmExports = result.instance.exports as unknown as VWasmExports
+
+    // if (wasmExports._start) {
+    //   wasmExports._start()
+    // }
 
     // Initialize graph in WASM
     graphPtr = wasmExports.init_graph()
@@ -86,6 +108,7 @@ export async function initWasm(wasmPath = '/vsignal.wasm'): Promise<void> {
     console.log('V-Signal WASM initialized')
   } catch (error) {
     console.warn('Failed to load WASM, using pure JS mode:', error)
+    wasmExports = null
   }
 }
 

@@ -93,5 +93,4 @@ pub fn get_update_buffer_ptr(g_ptr voidptr) voidptr {
 }
 
 fn main() {
-	println('hello')
 }

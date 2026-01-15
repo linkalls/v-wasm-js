@@ -20,7 +20,8 @@
     "./jsx-dev-runtime": {
       "import": "./dist/jsx-dev-runtime.js",
       "types": "./dist/jsx-dev-runtime.d.ts"
-    }
+    },
+    "./wasm": "./dist/vsignal.wasm"
   },
   "files": [
     "dist",
@@ -29,9 +30,10 @@
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
-    "build": "bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify",
+    "build": "bun run embed:wasm && bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
-    "build:wasm": "v -prod -b wasm -d no_backtrace -o dist/vsignal.wasm src/vsignal/signal.v",
+    "build:wasm": "v -prod -os browser -gc none -b wasm -d no_backtrace -o dist/vsignal.wasm src/vsignal/signal.v && bun run embed:wasm",
+    "embed:wasm": "bun run scripts/embed-wasm.ts",
     "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types",
     "prepare": "bun run build:wasm && bun run build && bun run build:types",
     "prepack": "bun ./scripts/ensure-wasm.js",
