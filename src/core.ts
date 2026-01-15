@@ -95,7 +95,7 @@ export async function initWasm(wasmPath?: string): Promise<void> {
     // Fallback for older builds or if imports are not needed (though inspection says they are)
     // const result = await WebAssembly.instantiate(bytes, {})
     const result = await WebAssembly.instantiate(bytes, imports)
-    wasmExports = result.instance.exports as unknown as VWasmExports
+    wasmExports = (result as any).instance.exports as unknown as VWasmExports
 
     // if (wasmExports._start) {
     //   wasmExports._start()

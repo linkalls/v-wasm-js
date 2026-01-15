@@ -14,10 +14,12 @@ mut:
 
 @[export: 'init_graph']
 pub fn init_graph() voidptr {
-	// Allocate on heap, but maybe we can just use a static instance for single-threaded WASM?
-	// For now, heap is fine.
-	mut g := &Graph{}
-	return g
+	unsafe {
+		mut g := &Graph(malloc(sizeof(Graph)))
+		g.node_count = 0
+		g.update_count = 0
+		return g
+	}
 }
 
 @[export: 'create_node']
