@@ -102,6 +102,12 @@ export async function initWasm(wasmPath?: string): Promise<void> {
     // }
 
     // Initialize graph in WASM
+    try {
+      wasmExports.memory.grow(200) // Ensure heap space
+    } catch (e) {
+      // Ignore if memory is already large enough or fixed
+    }
+
     graphPtr = wasmExports.init_graph()
     updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
     cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
