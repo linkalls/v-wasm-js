@@ -3,7 +3,7 @@
  * React-like TSX with derive() API
  */
 
-import { v, derive, get, set, subscribe, render } from '../../src/index'
+import { v, derive, get, set, subscribe, render, initWasm } from '../../src/index'
 
 // =====================
 // Atoms Definition
@@ -170,5 +170,7 @@ function App() {
 // Initialize
 // =====================
 
-render(<App />, document.getElementById('app'))
+initWasm().then(() => {
+  render(<App />, document.getElementById('app'))
+})
 
