@@ -20,13 +20,24 @@ export interface VAtom<T> {
 
 interface VAtomState<T> {
   value: T
-  subscribers: Set<Subscriber>
+  subscribers: Subscriber[]
   deps: Set<VAtom<any>>
-  dependents: Set<VAtom<any>>  // atoms that depend on this atom
+  dependents: VAtom<any>[]  // atoms that depend on this atom
 }
 
 // === Render Context ===
 let currentComponent: (() => void) | null = null
+const contextStack: (() => void)[] = []
+
+export function untrack<T>(fn: () => T): T {
+  const prev = currentComponent
+  currentComponent = null
+  try {
+    return fn()
+  } finally {
+    currentComponent = prev
+  }
+}
 
 // === Batching ===
 const pendingSubscribers = new Set<Subscriber>()
@@ -39,8 +50,10 @@ function flush() {
   copy.forEach(fn => withRenderContext(fn))
 }
 
-function scheduleUpdates(subscribers: Set<Subscriber>) {
-  subscribers.forEach(sub => pendingSubscribers.add(sub))
+function scheduleUpdates(subscribers: Subscriber[]) {
+  for (let i = 0; i < subscribers.length; i++) {
+    pendingSubscribers.add(subscribers[i])
+  }
   if (!flushPending) {
     flushPending = true
     queueMicrotask(flush)
@@ -170,15 +183,15 @@ function getAtomState<T>(atom: VAtom<T>): VAtomState<T> {
 
   const state: VAtomState<T> = {
     value: initial,
-    subscribers: new Set(),
+    subscribers: [],
     deps,
-    dependents: new Set()
+    dependents: []
   }
   atom._state = state
 
   // Register this atom as a dependent of its dependencies
   deps.forEach(dep => {
-    getAtomState(dep).dependents.add(atom)
+    getAtomState(dep).dependents.push(atom)
     // WASM Dependency Registration
     registerNodeInWasm(dep)
     registerDependencyInWasm(atom, dep)
@@ -213,8 +226,8 @@ v.from = derive
 export function get<T>(atom: VAtom<T>): T {
   const state = getAtomState(atom)
   
-  if (currentComponent) {
-    state.subscribers.add(currentComponent)
+  if (currentComponent && !state.subscribers.includes(currentComponent)) {
+    state.subscribers.push(currentComponent)
   }
   
   return state.value
@@ -243,8 +256,11 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
 
 export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
   const state = getAtomState(atom)
-  state.subscribers.add(callback)
-  return () => state.subscribers.delete(callback)
+  state.subscribers.push(callback)
+  return () => {
+    const idx = state.subscribers.indexOf(callback)
+    if (idx !== -1) state.subscribers.splice(idx, 1)
+  }
 }
 
 // === Derived Atom Updates (JS Fallback) ===
@@ -252,9 +268,10 @@ function updateDerived(source: VAtom<any>): void {
   const sourceState = getAtomState(source)
   const visited = new Set<VAtom<any>>()
   const queue = [...sourceState.dependents]
+  let head = 0
   
-  while (queue.length > 0) {
-    const atom = queue.shift()!
+  while (head < queue.length) {
+    const atom = queue[head++]
     if (visited.has(atom)) continue
     visited.add(atom)
     
@@ -265,7 +282,11 @@ function updateDerived(source: VAtom<any>): void {
       if (state.value !== newValue) {
         state.value = newValue
         scheduleUpdates(state.subscribers)
-        state.dependents.forEach(dep => queue.push(dep))
+        // Optimization: push to array instead of spread/forEach
+        const deps = state.dependents
+        for (let i = 0; i < deps.length; i++) {
+           queue.push(deps[i])
+        }
       }
     }
   }
@@ -330,11 +351,12 @@ export function useSet<T>(atom: VAtom<T>): (value: T | ((prev: T) => T)) => void
 }
 
 export function withRenderContext(component: () => void): void {
+  if (currentComponent) contextStack.push(currentComponent)
   currentComponent = component
   try {
     component()
   } finally {
-    currentComponent = null
+    currentComponent = contextStack.pop() || null
   }
 }
 

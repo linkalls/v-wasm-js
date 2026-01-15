@@ -4,7 +4,7 @@
  */
 
 // Core
-export { v, derive, get, set, subscribe, use, useValue, useSet, initWasm, wasm, withRenderContext } from './core'
+export { v, derive, get, set, subscribe, use, useValue, useSet, initWasm, wasm, withRenderContext, untrack } from './core'
 export type { VAtom } from './core'
 
 // JSX

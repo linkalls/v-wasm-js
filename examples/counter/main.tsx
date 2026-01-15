@@ -3,7 +3,7 @@
  * React-like TSX with derive() API
  */
 
-import { v, derive, get, set, subscribe, render, initWasm } from '../../src/index'
+import { v, derive, get, set, subscribe, render, initWasm, For } from '../../src/index'
 
 // =====================
 // Atoms Definition
@@ -60,25 +60,19 @@ function TodoList() {
           }
         }}>Add</button>
       </div>
-      <ul style="list-style: none; padding: 0; margin-top: 1rem;" ref={(el: HTMLElement) => {
-        const updateList = () => {
-          el.innerHTML = ''
-          get(todosAtom).forEach((todo, i) => {
-            const li = (
-              <li style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f5f5f5; margin-bottom: 0.25rem; border-radius: 4px;">
-                <span>{todo}</span>
-                <button 
-                  style="background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 0 0.5rem;"
-                  onClick={() => set(todosAtom, todos => todos.filter((_, j) => j !== i))}
-                >×</button>
-              </li>
-            )
-            el.appendChild(li)
-          })
-        }
-        subscribe(todosAtom, updateList)
-        updateList()
-      }}></ul>
+      <ul style="list-style: none; padding: 0; margin-top: 1rem;">
+        <For each={() => get(todosAtom)} key={(item) => item}>
+          {(todo) => (
+            <li style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f5f5f5; margin-bottom: 0.25rem; border-radius: 4px;">
+              <span>{todo}</span>
+              <button
+                style="background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 0 0.5rem;"
+                onClick={() => set(todosAtom, todos => todos.filter((t) => t !== todo))}
+              >×</button>
+            </li>
+          )}
+        </For>
+      </ul>
     </div>
   )
 }

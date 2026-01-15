@@ -4,7 +4,7 @@
  */
 
 import { type VNode } from './jsx-runtime'
-import { withRenderContext } from './core'
+import { withRenderContext, untrack } from './core'
 
 type MaybeReactive<T> = T | (() => T)
 
@@ -28,6 +28,13 @@ export function Show(props: {
   let currentNode: Node | null = null
   let showingFallback = false
   
+  // Handle children array from JSX runtime
+  const getChildren = () => {
+    const c = props.children
+    if (Array.isArray(c) && c.length === 1 && typeof c[0] === 'function') return c[0]
+    return c
+  }
+
   const update = () => {
     const condition = resolve(props.when)
     const parent = marker.parentNode
@@ -40,9 +47,10 @@ export function Show(props: {
       }
       
       if (!currentNode || showingFallback) {
-        const child = typeof props.children === 'function' 
-          ? props.children() 
-          : props.children
+        const children = getChildren()
+        const child = typeof children === 'function'
+          ? (children as () => VNode)()
+          : children
         if (child instanceof Node) {
           currentNode = child
           parent?.insertBefore(child, marker.nextSibling)
@@ -99,6 +107,16 @@ export function For<T>(props: {
   
   // Default key function uses index
   const getKey = props.key || ((_item: T, i: number) => i)
+
+  // Handle children array from JSX runtime
+  const renderItem = (item: T, indexFn: () => number) => {
+    const c = props.children
+    const fn = (Array.isArray(c) && c.length === 1 && typeof c[0] === 'function') ? c[0] : c
+    if (typeof fn === 'function') {
+        return fn(item, indexFn)
+    }
+    return document.createTextNode('') // Fallback
+  }
   
   const update = () => {
     const items = resolve(props.each)
@@ -130,7 +148,7 @@ export function For<T>(props: {
         // Create new node
         let currentIndex = i
         const indexFn = () => currentIndex
-        const node = props.children(item, indexFn)
+        const node = untrack(() => renderItem(item, indexFn))
         if (node instanceof Node) {
           entry = { node, item, indexFn }
           nodeMap.set(key, entry)
