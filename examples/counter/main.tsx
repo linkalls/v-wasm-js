@@ -170,7 +170,7 @@ function App() {
 // Initialize
 // =====================
 
-initWasm().then(() => {
+// initWasm().then(() => {
   render(<App />, document.getElementById('app'))
-})
+// })
 

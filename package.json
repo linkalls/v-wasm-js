@@ -33,7 +33,7 @@
     "build": "bun run embed:wasm && bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify --splitting",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
    
-    "build:wasm": "v -prod -gc none -b wasm -d no_backtrace -d no_stdio -o dist/vsignal.wasm src/vsignal/signal.v || [ -f dist/vsignal.wasm ] && ~/v/thirdparty/binaryen/bin/wasm-opt -all -O4 dist/vsignal.wasm -o dist/vsignal.wasm && bun run embed:wasm",
+    "build:wasm": "v -prod -gc none -b wasm -d no_backtrace -d no_stdio -o dist/vsignal.wasm src/vsignal/signal.v || [ -f dist/vsignal.wasm ] && (~/v/thirdparty/binaryen/bin/wasm-opt -all -O4 dist/vsignal.wasm -o dist/vsignal.wasm || echo 'wasm-opt skipped') && bun run embed:wasm",
     "embed:wasm": "bun run scripts/embed-wasm.ts",
     "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types",
     "prepare": "bun run build:wasm && bun run build && bun run build:types",

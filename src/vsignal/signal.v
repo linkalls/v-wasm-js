@@ -34,14 +34,17 @@ pub fn create_node(g_ptr voidptr) int {
 pub fn add_dependency(g_ptr voidptr, dependent int, dependency int) {
 	mut g := unsafe { &Graph(g_ptr) }
 
-	cnt := g.nodes[dependency].dep_count
-	// Only check last inserted for quick optimization
-	if cnt > 0 && g.nodes[dependency].dependents[cnt-1] == dependent {
-		return
-	}
+	// Unsafe block for performance (skip bounds checks)
+	unsafe {
+		cnt := g.nodes[dependency].dep_count
+		// Only check last inserted for quick optimization
+		if cnt > 0 && g.nodes[dependency].dependents[cnt-1] == dependent {
+			return
+		}
 
-	g.nodes[dependency].dependents[cnt] = dependent
-	g.nodes[dependency].dep_count++
+		g.nodes[dependency].dependents[cnt] = dependent
+		g.nodes[dependency].dep_count++
+	}
 }
 
 @[export: 'propagate']
@@ -55,32 +58,34 @@ pub fn propagate(g_ptr voidptr, source_id int) int {
 	mut q_head := 0
 	mut q_tail := 0
 
-	// Source dependents
-	cnt := g.nodes[source_id].dep_count
-	for i in 0 .. cnt {
-		dep := g.nodes[source_id].dependents[i]
-		queue[q_tail] = dep
-		q_tail++
-		visited_words[dep >> 5] |= (1 << (dep & 31))
-	}
+	unsafe {
+		// Source dependents
+		cnt := g.nodes[source_id].dep_count
+		for i in 0 .. cnt {
+			dep := g.nodes[source_id].dependents[i]
+			queue[q_tail] = dep
+			q_tail++
+			visited_words[dep >> 5] |= (1 << (dep & 31))
+		}
 
-	for q_head < q_tail {
-		curr := queue[q_head]
-		q_head++
+		for q_head < q_tail {
+			curr := queue[q_head]
+			q_head++
 
-		g.update_buffer[g.update_count] = curr
-		g.update_count++
+			g.update_buffer[g.update_count] = curr
+			g.update_count++
 
-		d_cnt := g.nodes[curr].dep_count
-		for i in 0 .. d_cnt {
-			dep := g.nodes[curr].dependents[i]
-			word_idx := dep >> 5
-			mask := 1 << (dep & 31)
+			d_cnt := g.nodes[curr].dep_count
+			for i in 0 .. d_cnt {
+				dep := g.nodes[curr].dependents[i]
+				word_idx := dep >> 5
+				mask := 1 << (dep & 31)
 
-			if (visited_words[word_idx] & mask) == 0 {
-				visited_words[word_idx] |= mask
-				queue[q_tail] = dep
-				q_tail++
+				if (visited_words[word_idx] & mask) == 0 {
+					visited_words[word_idx] |= mask
+					queue[q_tail] = dep
+					q_tail++
+				}
 			}
 		}
 	}
