@@ -22,16 +22,29 @@ async function check() {
     const exports = result.instance.exports as any;
 
     console.log("WASM instantiated.");
-    console.log("Exports:", Object.keys(exports));
     console.log("Initial memory size:", exports.memory.buffer.byteLength);
 
-    // Try growing memory
-    console.log("Growing memory by 200 pages...");
-    try {
-        exports.memory.grow(200);
-        console.log("New memory size:", exports.memory.buffer.byteLength);
-    } catch (e) {
-        console.log("Failed to grow memory:", e);
+    // Smart Grow Logic Verification
+    const GRAPH_SIZE = 1024 * 1024;
+    const SAFETY_MARGIN = 1024 * 1024;
+    const REQUIRED_BYTES = GRAPH_SIZE + SAFETY_MARGIN;
+    const PAGE_SIZE = 65536;
+
+    const currentBytes = exports.memory.buffer.byteLength;
+    const neededPages = Math.ceil((REQUIRED_BYTES - currentBytes) / PAGE_SIZE);
+
+    console.log(`Smart Grow Check: Current=${currentBytes}, Required=${REQUIRED_BYTES}, NeededPages=${neededPages}`);
+
+    if (neededPages > 0) {
+        console.log(`Growing memory by ${neededPages} pages...`);
+        try {
+            exports.memory.grow(neededPages);
+            console.log("New memory size:", exports.memory.buffer.byteLength);
+        } catch (e) {
+            console.log("Failed to grow memory:", e);
+        }
+    } else {
+        console.log("Memory is sufficient. No growth needed.");
     }
 
     if (exports._start) {

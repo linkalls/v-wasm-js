@@ -102,10 +102,22 @@ export async function initWasm(wasmPath?: string): Promise<void> {
     // }
 
     // Initialize graph in WASM
-    try {
-      wasmExports.memory.grow(200) // Ensure heap space
-    } catch (e) {
-      // Ignore if memory is already large enough or fixed
+    // Calculate required memory: Graph struct (~1MB) + Safety Margin (~1MB) = 2MB total
+    const GRAPH_SIZE = 1024 * 1024
+    const SAFETY_MARGIN = 1024 * 1024
+    const REQUIRED_BYTES = GRAPH_SIZE + SAFETY_MARGIN
+    const PAGE_SIZE = 65536
+
+    const currentBytes = wasmExports.memory.buffer.byteLength
+    const neededPages = Math.ceil((REQUIRED_BYTES - currentBytes) / PAGE_SIZE)
+
+    if (neededPages > 0) {
+      try {
+        wasmExports.memory.grow(neededPages)
+      } catch (e) {
+        // Ignore if memory is already large enough or fixed
+        console.warn('WASM memory grow failed:', e)
+      }
     }
 
     graphPtr = wasmExports.init_graph()
