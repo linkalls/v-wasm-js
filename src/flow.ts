@@ -4,7 +4,7 @@
  */
 
 import { type VNode } from './jsx-runtime'
-import { withRenderContext } from './core'
+import { withRenderContext, subscribe, get, type VAtom } from './core'
 
 type MaybeReactive<T> = T | (() => T)
 
@@ -21,12 +21,23 @@ function resolve<T>(value: MaybeReactive<T>): T {
  */
 export function Show(props: {
   when: MaybeReactive<boolean>
-  children: VNode | (() => VNode)
-  fallback?: VNode | (() => VNode)
+  children: VNode | (() => VNode) | (VNode | (() => VNode))[]
+  fallback?: VNode | (() => VNode) | (VNode | (() => VNode))[]
 }): VNode {
   const marker = document.createComment('show')
   let currentNode: Node | null = null
   let showingFallback = false
+  
+  // Extract first child (JSX passes as array)
+  const getChild = () => {
+    const c = Array.isArray(props.children) ? props.children[0] : props.children
+    return typeof c === 'function' ? c() : c
+  }
+  const getFallback = () => {
+    if (!props.fallback) return null
+    const f = Array.isArray(props.fallback) ? props.fallback[0] : props.fallback
+    return typeof f === 'function' ? f() : f
+  }
   
   const update = () => {
     const condition = resolve(props.when)
@@ -40,9 +51,7 @@ export function Show(props: {
       }
       
       if (!currentNode || showingFallback) {
-        const child = typeof props.children === 'function' 
-          ? props.children() 
-          : props.children
+        const child = getChild()
         if (child instanceof Node) {
           currentNode = child
           parent?.insertBefore(child, marker.nextSibling)
@@ -57,9 +66,7 @@ export function Show(props: {
       }
       
       if (props.fallback && !showingFallback) {
-        const fallback = typeof props.fallback === 'function'
-          ? props.fallback()
-          : props.fallback
+        const fallback = getFallback()
         if (fallback instanceof Node) {
           currentNode = fallback.cloneNode(true)
           parent?.insertBefore(currentNode, marker.nextSibling)
@@ -90,7 +97,7 @@ export function Show(props: {
  */
 export function For<T>(props: {
   each: MaybeReactive<T[]>
-  children: (item: T, index: () => number) => VNode
+  children: ((item: T, index: () => number) => VNode) | ((item: T, index: () => number) => VNode)[]
   key?: (item: T, index: number) => string | number
 }): VNode {
   const marker = document.createComment('for')
@@ -100,10 +107,19 @@ export function For<T>(props: {
   // Default key function uses index
   const getKey = props.key || ((_item: T, i: number) => i)
   
+  // Extract render function from children (JSX passes as array)
+  const renderFn = Array.isArray(props.children) ? props.children[0] : props.children
+  
+  // Create fragment container first
+  const frag = document.createDocumentFragment()
+  frag.appendChild(marker)
+  
   const update = () => {
     const items = resolve(props.each)
     const parent = marker.parentNode
-    if (!parent) return
+    
+    // If not mounted yet, render to fragment instead
+    const targetParent: Node = parent || frag
     
     const newKeys = items.map((item, i) => getKey(item, i))
     const newKeySet = new Set(newKeys)
@@ -130,12 +146,12 @@ export function For<T>(props: {
         // Create new node
         let currentIndex = i
         const indexFn = () => currentIndex
-        const node = props.children(item, indexFn)
+        const node = renderFn(item, indexFn)
         if (node instanceof Node) {
           entry = { node, item, indexFn }
           nodeMap.set(key, entry)
           // Insert after prevNode
-          parent.insertBefore(node, prevNode.nextSibling)
+          targetParent.insertBefore(node, prevNode.nextSibling)
         }
       } else {
         // Reuse existing node, update index and move if needed
@@ -144,7 +160,7 @@ export function For<T>(props: {
         entry.indexFn = () => closureIndex
         
         if (prevNode.nextSibling !== entry.node) {
-          parent.insertBefore(entry.node, prevNode.nextSibling)
+          targetParent.insertBefore(entry.node, prevNode.nextSibling)
         }
       }
       
@@ -155,10 +171,6 @@ export function For<T>(props: {
     
     currentKeys = newKeys
   }
-  
-  // Create fragment container  
-  const frag = document.createDocumentFragment()
-  frag.appendChild(marker)
   
   // Initial render with subscription
   withRenderContext(update)

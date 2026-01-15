@@ -51,7 +51,6 @@ function scheduleUpdates(subscribers: Set<Subscriber>) {
 // Optimization A: Removed WeakMap, state is on atom._state
 
 // === WASM Integration ===
-import { wasmBase64 } from './generated-wasm'
 
 interface VWasmExports {
   init_graph: () => number // returns pointer
@@ -73,16 +72,15 @@ export async function initWasm(wasmPath?: string): Promise<void> {
   if (wasmExports) return
 
   try {
-    let bytes: BufferSource
-    if (wasmPath) {
-      const response = await fetch(wasmPath)
-      if (!response.ok) {
-        return
-      }
-      bytes = await response.arrayBuffer()
-    } else {
-      bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0))
+    const url = wasmPath || new URL('../dist/vsignal.wasm', import.meta.url).href
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.error(`Failed to load WASM: ${response.status} ${response.statusText}`)
+      return
     }
+
+    const bytes = await response.arrayBuffer()
 
     const imports = {
       wasi_snapshot_preview1: {

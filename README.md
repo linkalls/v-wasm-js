@@ -9,15 +9,15 @@ English | [日本語](./README.ja.md)
 
 ## 🚀 Performance
 
-**Vitrio outperforms Solid.js by up to 82%** on reactivity benchmarks:
+**Vitrio outperforms Solid.js by up to 50%** on reactivity benchmarks:
 
 | Metric | Vitrio | SolidJS | React |
 |--------|--------|---------|-------|
-| Bundle Size | 8KB | 13KB | 144KB |
-| 100 Clicks (ms) | **11.92** | 16.41 | 17.35 |
-| List Updates (ms) | **12.72** | 16.19 | 44.24 |
+| Bundle Size | **10KB** | 13KB | 144KB |
+| 100 Clicks (ms) | **7.8** | 8.3 | 9.0 |
+| List Updates (ms) | **5.9** | 11.9 | 8.7 |
 
-> 📊 See [benchmarks/results.md](./benchmarks/results.md) for full details.
+> 📊 See [results.md](./results.md) for full details.
 
 ## Features
 

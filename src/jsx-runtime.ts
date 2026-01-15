@@ -153,13 +153,18 @@ export function Fragment(props: { children?: any[] }): DocumentFragment {
   return frag
 }
 
-// JSX namespace for TypeScript
+// JSX namespace for TypeScript - Vitrio uses VNode which includes DocumentFragment
 declare global {
   namespace JSX {
+    // Allow any HTML element
     interface IntrinsicElements {
       [elemName: string]: any
     }
-    interface Element extends globalThis.Element {}
+    // VNode includes Element, Text, and DocumentFragment
+    type Element = import('./jsx-runtime').VNode
+    interface ElementChildrenAttribute {
+      children: {}
+    }
   }
 }
 
@@ -167,5 +172,8 @@ export namespace JSX {
   export interface IntrinsicElements {
     [elemName: string]: any
   }
-  export interface Element extends globalThis.Element {}
+  export type Element = VNode
+  export interface ElementChildrenAttribute {
+    children: {}
+  }
 }
