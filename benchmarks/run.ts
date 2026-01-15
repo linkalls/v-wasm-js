@@ -182,8 +182,8 @@ async function runBenchmark() {
   // Save to markdown
   const md = `# Benchmark Results
 
-| Metric | Vitrio (WASM) | SolidJS | React |
-|--------|---------------|---------|-------|
+| Metric | Vitrio (Optimized JS) | SolidJS | React |
+|--------|-----------------------|---------|-------|
 | Bundle Size (bytes) | ${results.vitrio.size} | ${results.solid.size} | ${results.react.size} |
 | Avg Load Time (ms) | ${results.vitrio.load.toFixed(2)} | ${results.solid.load.toFixed(2)} | ${results.react.load.toFixed(2)} |
 | Interaction (100 clicks) (ms) | ${results.vitrio.interact.toFixed(2)} | ${results.solid.interact.toFixed(2)} | ${results.react.interact.toFixed(2)} |

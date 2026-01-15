@@ -23,6 +23,7 @@ interface VAtomState<T> {
   subscribers: Set<Subscriber>
   deps: Set<VAtom<any>>
   dependents: Set<VAtom<any>>  // atoms that depend on this atom
+  lastUpdateEpoch?: number
 }
 
 // === Render Context ===
@@ -248,26 +249,54 @@ export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
 }
 
 // === Derived Atom Updates (JS Fallback) ===
+
+// Optimization: Reuse queue and use epoch to avoid allocations
+const propagateQueue: VAtom<any>[] = []
+let updateEpoch = 0
+
 function updateDerived(source: VAtom<any>): void {
+  updateEpoch++
+  let head = 0
+  let tail = 0
+
+  // Initial dependents
   const sourceState = getAtomState(source)
-  const visited = new Set<VAtom<any>>()
-  const queue = [...sourceState.dependents]
+  sourceState.dependents.forEach(dep => {
+    const state = getAtomState(dep)
+    if (state.lastUpdateEpoch !== updateEpoch) {
+      state.lastUpdateEpoch = updateEpoch
+      propagateQueue[tail++] = dep
+    }
+  })
   
-  while (queue.length > 0) {
-    const atom = queue.shift()!
-    if (visited.has(atom)) continue
-    visited.add(atom)
+  while (head < tail) {
+    const atom = propagateQueue[head++]
+    const state = getAtomState(atom)
     
     if (atom.read) {
-      const state = getAtomState(atom)
-      const newValue = atom.read((a) => getAtomState(a).value)
+      // Use fastGet to avoid recursion overhead
+      const newValue = atom.read(fastGet)
       
       if (state.value !== newValue) {
         state.value = newValue
-        scheduleUpdates(state.subscribers)
-        state.dependents.forEach(dep => queue.push(dep))
+        if (state.subscribers.size > 0) {
+          scheduleUpdates(state.subscribers)
+        }
+
+        state.dependents.forEach(dep => {
+          const depState = getAtomState(dep)
+          if (depState.lastUpdateEpoch !== updateEpoch) {
+            depState.lastUpdateEpoch = updateEpoch
+            propagateQueue[tail++] = dep
+          }
+        })
       }
     }
+  }
+
+  // Cleanup to avoid memory leaks
+  for (let i = 0; i < tail; i++) {
+    propagateQueue[i] = undefined as any
   }
 }
 

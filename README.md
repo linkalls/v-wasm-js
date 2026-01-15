@@ -14,8 +14,8 @@ English | [日本語](./README.ja.md)
 | Metric | Vitrio | SolidJS | React |
 |--------|--------|---------|-------|
 | Bundle Size | 8KB | 13KB | 144KB |
-| 100 Clicks (ms) | **11.92** | 16.41 | 17.35 |
-| List Updates (ms) | **12.72** | 16.19 | 44.24 |
+| 100 Clicks (ms) | **16.53** | 16.56 | 25.80 |
+| List Updates (ms) | **15.50** | 18.47 | 18.96 |
 
 > 📊 See [benchmarks/results.md](./benchmarks/results.md) for full details.
 
