@@ -1,10 +1,19 @@
 
 import { wasmBase64 } from '../src/generated-wasm';
+import { join } from 'path';
 
 async function check() {
   console.log("Checking WASM initialization...");
   try {
-    const bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0));
+    let bytes: Uint8Array;
+    if (wasmBase64) {
+        bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0));
+    } else {
+        console.log("wasmBase64 is empty, reading from dist/vsignal.wasm");
+        const path = join(import.meta.dir, '../dist/vsignal.wasm');
+        const buffer = await Bun.file(path).arrayBuffer();
+        bytes = new Uint8Array(buffer);
+    }
 
     const imports = {
       wasi_snapshot_preview1: {
