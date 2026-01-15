@@ -181,4 +181,4 @@ See [examples/counter](./examples/counter) for a complete demo.
 
 ## License
 
-MIT © 2024
+MIT © 2026
