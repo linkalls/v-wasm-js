@@ -9,5 +9,6 @@ await Bun.build({
   outdir: join(__dirname, 'dist'),
   target: 'browser',
   minify: true,
+  splitting: true, // Enable splitting to test lazy loading of WASM
 });
 console.log("Vitrio build complete.");
