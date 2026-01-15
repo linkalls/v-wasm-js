@@ -4,40 +4,49 @@ Vitrio is designed to be **faster than Solid.js** through Solid-style DOM update
 
 ## Running Benchmarks
 
-
-```bash
-
-node benchmark/run-node.mjs
-```
-
-### With Node.js
-
-If you prefer Node.js or have issues with Bun's Playwright integration:
-
 ```bash
 # Requires Node.js 18+ and Playwright installed
 node benchmarks/run-node.mjs
 ```
 
-## Benchmark Results
+## Benchmark Results (2026-01-15)
 
 | Metric | Vitrio | SolidJS | React |
 |--------|--------|---------|-------|
-| Bundle Size | **8KB** | 13KB | 144KB |
-| Avg Load Time | 69.66ms | **48.81ms** | 50.52ms |
-| 100 Clicks | **11.92ms** | 16.41ms | 17.35ms |
-| List Update (50 add, 25 remove) | **12.72ms** | 16.19ms | 44.24ms |
+| Bundle Size | **10.8KB** | 13KB | 144KB |
+| Avg Load Time | 54.58ms | **33.10ms** | 45.31ms |
+| 100 Clicks | 8.52ms | 7.63ms | **7.07ms** |
+| List Update | **6.71ms** | 8.08ms | 8.55ms |
 
 ## Performance Analysis
 
-### Counter (100 clicks)
-- **Vitrio is 37.7% faster than Solid**
-- Vitrio is 45.6% faster than React
+### Bundle Size
+- **Vitrio is 16% smaller than Solid**
+- **Vitrio is 92% smaller than React**
 
 ### List Updates
-- **Vitrio is 27.3% faster than Solid**
-- **Vitrio is 247.8% faster than React**
+- **Vitrio is 20.4% faster than Solid**
+- **Vitrio is 27.4% faster than React**
 - Uses keyed diffing to minimize DOM operations
+
+### Counter (100 clicks)
+- Vitrio is 10.4% slower than Solid (WASM bridge overhead)
+- Future optimization: batch WASM calls
+
+### Load Time
+- Vitrio is slower due to WASM initialization overhead
+- Future optimization: lazy WASM loading
+
+## Optimization History
+
+### v0.1.2 → v0.1.3 (2026-01-15)
+- **WASM size**: 3.9KB → 1.5KB (**61% reduction**)
+- **JS bundle**: 7.8KB → 4.5KB (**43% reduction**)
+- Added `@[direct_array_access]` to V code
+- Removed console.log statements
+- Added `-d no_bounds_checking` build flag
+
+See [optimization.md](./optimization.md) for details.
 
 ## Why Vitrio is Fast
 
@@ -47,6 +56,7 @@ node benchmarks/run-node.mjs
 4. **Marker-based flow control**: `Show`/`For` use comment markers, not container elements
 5. **Keyed reconciliation**: `For` reuses existing DOM nodes when possible
 6. **Batched updates**: Multiple state changes are batched into a single microtask
+7. **WASM-powered graph**: Dependency propagation runs in optimized WebAssembly
 
 ## Benchmark Apps
 
@@ -59,3 +69,4 @@ Located in:
 - `benchmarks/vitrio-app/` - Vitrio implementation
 - `benchmarks/solid-app/` - SolidJS implementation  
 - `benchmarks/react-app/` - React implementation
+

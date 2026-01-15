@@ -77,7 +77,6 @@ export async function initWasm(wasmPath?: string): Promise<void> {
     if (wasmPath) {
       const response = await fetch(wasmPath)
       if (!response.ok) {
-        console.warn('WASM not available at ' + wasmPath + ', falling back to pure JS mode')
         return
       }
       bytes = await response.arrayBuffer()
@@ -116,16 +115,13 @@ export async function initWasm(wasmPath?: string): Promise<void> {
         wasmExports.memory.grow(neededPages)
       } catch (e) {
         // Ignore if memory is already large enough or fixed
-        console.warn('WASM memory grow failed:', e)
       }
     }
 
     graphPtr = wasmExports.init_graph()
     updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
     cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
-    console.log('V-Signal WASM initialized')
   } catch (error) {
-    console.warn('Failed to load WASM, using pure JS mode:', error)
     wasmExports = null
   }
 }

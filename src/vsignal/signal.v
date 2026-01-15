@@ -1,15 +1,15 @@
 struct Node {
 mut:
 	dependents [64]int
-	dep_count int
+	dep_count  int
 }
 
 struct Graph {
 mut:
-	nodes [4096]Node
-	node_count int
+	nodes         [4096]Node
+	node_count    int
 	update_buffer [4096]int
-	update_count int
+	update_count  int
 }
 
 @[export: 'init_graph']
@@ -31,12 +31,13 @@ pub fn create_node(g_ptr voidptr) int {
 }
 
 @[export: 'add_dependency']
+@[direct_array_access]
 pub fn add_dependency(g_ptr voidptr, dependent int, dependency int) {
 	mut g := unsafe { &Graph(g_ptr) }
 
 	cnt := g.nodes[dependency].dep_count
 	// Only check last inserted for quick optimization
-	if cnt > 0 && g.nodes[dependency].dependents[cnt-1] == dependent {
+	if cnt > 0 && g.nodes[dependency].dependents[cnt - 1] == dependent {
 		return
 	}
 
@@ -45,6 +46,7 @@ pub fn add_dependency(g_ptr voidptr, dependent int, dependency int) {
 }
 
 @[export: 'propagate']
+@[direct_array_access]
 pub fn propagate(g_ptr voidptr, source_id int) int {
 	mut g := unsafe { &Graph(g_ptr) }
 	g.update_count = 0
@@ -89,6 +91,7 @@ pub fn propagate(g_ptr voidptr, source_id int) int {
 }
 
 @[export: 'get_update_buffer_ptr']
+@[direct_array_access]
 pub fn get_update_buffer_ptr(g_ptr voidptr) voidptr {
 	g := unsafe { &Graph(g_ptr) }
 	return &g.update_buffer[0]

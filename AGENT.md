@@ -6,3 +6,5 @@ make
 ./v symlink
 v cmd/tools/install_binaryen.vsh
 ```
+
+何をやったかとか築きとかをdocs/に書いて

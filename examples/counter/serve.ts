@@ -29,4 +29,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Vitrio Counter Demo: http://localhost:3000`);
+console.log(`Vitrio Counter Demo: http://localhost:3001`);
