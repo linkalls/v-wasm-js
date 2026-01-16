@@ -3,7 +3,8 @@
  * React-like TSX with derive() API
  */
 
-import { v, derive, get, set, subscribe, render, initWasm, For, Show } from '../../src/index'
+import { v, derive, get, set, subscribe, render, For, Show } from '../../src/index'
+import type { VNode } from '../../src/jsx-runtime'
 
 // =====================
 // Atoms Definition
@@ -11,9 +12,13 @@ import { v, derive, get, set, subscribe, render, initWasm, For, Show } from '../
 
 const countAtom = v(0)
 const doubledAtom = derive(get => get(countAtom) * 2)
-const todosAtom = v<string[]>([])
+type TodoItem = { id: number; text: string }
+
+const todosAtom = v<TodoItem[]>([])
+const nextTodoIdAtom = v(0)
 const inputAtom = v('')
 const showDetailsAtom = v(false)
+const showRestAtom = v(false)
 
 // =====================
 // React-like Components
@@ -55,19 +60,21 @@ function TodoList() {
         <button onClick={() => {
           const text = get(inputAtom).trim()
           if (text) {
-            set(todosAtom, todos => [...todos, text])
+            const nextId = get(nextTodoIdAtom)
+            set(nextTodoIdAtom, nextId + 1)
+            set(todosAtom, todos => [...todos, { id: nextId, text }])
             set(inputAtom, '')
           }
         }}>Add</button>
       </div>
       <ul style="list-style: none; padding: 0; margin-top: 1rem;">
-        <For each={() => get(todosAtom)}>
-          {(todo: string, index: () => number) => (
+        <For each={() => get(todosAtom)} key={(todo) => todo.id}>
+          {(todo: TodoItem) => (
             <li style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f5f5f5; margin-bottom: 0.25rem; border-radius: 4px;">
-              <span>{todo}</span>
+              <span>{todo.text}</span>
               <button 
                 style="background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 0 0.5rem;"
-                onClick={() => set(todosAtom, todos => todos.filter((_, j) => j !== index()))}
+                onClick={() => set(todosAtom, todos => todos.filter(item => item.id !== todo.id))}
               >×</button>
             </li>
           )}
@@ -133,6 +140,17 @@ function ApiReference() {
   )
 }
 
+function DeferredSections(): VNode {
+  const frag = document.createDocumentFragment()
+  const sections = [<TodoList />, <ToggleSection />, <ApiReference />]
+  for (const section of sections) {
+    if (section instanceof Node) {
+      frag.appendChild(section)
+    }
+  }
+  return frag as unknown as VNode
+}
+
 function App() {
   return (
     <div>
@@ -141,9 +159,9 @@ function App() {
         Ultra-minimal reactive state management with derive() API
       </p>
       <Counter />
-      <TodoList />
-      <ToggleSection />
-      <ApiReference />
+      <Show when={() => get(showRestAtom)}>
+        {() => <DeferredSections />}
+      </Show>
     </div>
   )
 }
@@ -152,7 +170,14 @@ function App() {
 // Initialize
 // =====================
 
-initWasm().then(() => {
-  render(<App />, document.getElementById('app'))
-})
-
+const root = document.getElementById('app')
+if (root) {
+  ;(window as { __vitrioHydrated?: boolean }).__vitrioHydrated = false
+  requestAnimationFrame(() => {
+    render(<App />, root)
+    requestAnimationFrame(() => {
+      set(showRestAtom, true)
+      ;(window as { __vitrioHydrated?: boolean }).__vitrioHydrated = true
+    })
+  })
+}

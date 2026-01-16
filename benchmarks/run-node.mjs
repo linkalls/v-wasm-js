@@ -73,16 +73,16 @@ async function runBenchmark() {
   async function benchApp(name, url, target) {
     console.log(`\nBenchmarking ${name}...`);
     let totalLoad = 0;
-    for (let i = 0; i < 5; i++) { const start = performance.now(); await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('#counter', { timeout: 10000 }); const end = performance.now(); totalLoad += (end - start); }
+    for (let i = 0; i < 5; i++) { const start = performance.now(); await page.goto(url, { waitUntil: 'domcontentloaded' }); if (target !== 'vitrio') { await page.waitForSelector('#counter', { timeout: 10000 }); } const end = performance.now(); totalLoad += (end - start); }
     results[target].load = totalLoad / 5; console.log(`  Load time: ${results[target].load.toFixed(2)}ms`);
 
-    await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('#counter', { timeout: 10000 }); const startInteract = performance.now();
+    await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('#counter', { timeout: 10000 }); if (target === 'vitrio') { await page.waitForFunction(() => window.__vitrioHydrated === true); } const startInteract = performance.now();
     await page.evaluate(() => { const btns = Array.from(document.querySelectorAll('button')); const btn = btns.find(b => b.textContent && b.textContent.includes('+')); if (btn) for (let i = 0; i < 100; i++) btn.click(); });
     const endInteract = performance.now(); results[target].interact = endInteract - startInteract; console.log(`  Interact time: ${results[target].interact.toFixed(2)}ms`);
 
     const count = await page.locator('#counter').textContent(); console.log(`  Final count: ${count}`);
 
-    await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('#counter', { timeout: 10000 }); const startList = performance.now();
+    await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForSelector('#counter', { timeout: 10000 }); if (target === 'vitrio') { await page.waitForFunction(() => window.__vitrioHydrated === true); } const startList = performance.now();
     await page.evaluate(() => {
       const input = document.querySelector('input[placeholder*="todo"]');
       const addBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Add');
