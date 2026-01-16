@@ -142,3 +142,7 @@ function List() {
   )
 }
 ```
+
+## メモ
+
+- props の反復は `for...in` と `hasOwnProperty` を使い、継承プロパティを無視します。

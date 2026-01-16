@@ -59,9 +59,12 @@ function createElement(
   
   // Apply props with reactive binding support
   if (props) {
-    for (const [key, value] of Object.entries(props)) {
+    for (const key in props) {
+      if (!Object.prototype.hasOwnProperty.call(props, key)) continue
       if (key === 'children') continue
-      
+
+      const value = props[key]
+
       if (key.startsWith('on')) {
         // Event handlers: onClick -> click
         const event = key.slice(2).toLowerCase()
