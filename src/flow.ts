@@ -122,6 +122,63 @@ export function For<T>(props: {
     const targetParent: Node = parent || frag
     
     const newKeys = items.map((item, i) => getKey(item, i))
+
+    if (currentKeys.length > 0 && newKeys.length >= currentKeys.length) {
+      let isPrefix = true
+      for (let i = 0; i < currentKeys.length; i++) {
+        if (currentKeys[i] !== newKeys[i]) {
+          isPrefix = false
+          break
+        }
+      }
+
+      if (isPrefix) {
+        let prevNode = currentKeys.length
+          ? nodeMap.get(currentKeys[currentKeys.length - 1])?.node || marker
+          : marker
+
+        for (let i = currentKeys.length; i < items.length; i++) {
+          const item = items[i]
+          const key = newKeys[i]
+          let currentIndex = i
+          const indexFn = () => currentIndex
+          const node = renderFn(item, indexFn)
+          if (node instanceof Node) {
+            nodeMap.set(key, { node, item, indexFn })
+            targetParent.insertBefore(node, prevNode.nextSibling)
+            prevNode = node
+          }
+        }
+
+        currentKeys = newKeys
+        return
+      }
+    }
+
+    if (currentKeys.length > 0 && newKeys.length <= currentKeys.length) {
+      let j = 0
+      for (let i = 0; i < currentKeys.length; i++) {
+        if (j < newKeys.length && currentKeys[i] === newKeys[j]) {
+          j++
+        }
+      }
+
+      if (j === newKeys.length) {
+        const newKeySet = new Set(newKeys)
+        for (const oldKey of currentKeys) {
+          if (!newKeySet.has(oldKey)) {
+            const entry = nodeMap.get(oldKey)
+            if (entry) {
+              entry.node.parentNode?.removeChild(entry.node)
+              nodeMap.delete(oldKey)
+            }
+          }
+        }
+        currentKeys = newKeys
+        return
+      }
+    }
+
     const newKeySet = new Set(newKeys)
     
     // Remove nodes that no longer exist
