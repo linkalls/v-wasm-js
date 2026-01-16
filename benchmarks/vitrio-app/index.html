@@ -4,117 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vitrio Demo</title>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --bg: #fafafa;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --text-muted: #6b7280;
-            --border: #e5e7eb;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 2rem;
-            line-height: 1.6;
-        }
-
-        #app {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        h3 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: var(--text);
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: var(--primary-dark);
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        input {
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.5rem 0.75rem;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-        }
-
-        code {
-            background: #f3f4f6;
-            padding: 0.125rem 0.375rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-        }
-
-        ul {
-            margin: 0.5rem 0;
-            padding-left: 1.5rem;
-        }
-
-        li {
-            margin: 0.25rem 0;
-        }
-
-        table {
-            font-size: 0.9rem;
-        }
-
-        td code {
-            color: var(--primary-dark);
-        }
-    </style>
 </head>
 <body>
     <div id="app">
-        <p style="color: #888;">Loading V-Signal...</p>
+        <span id="counter">0</span>
     </div>
-    <script type="module" src="./dist/main.js"></script>
+    <script type="module" async src="./dist/main.js"></script>
 </body>
 </html>

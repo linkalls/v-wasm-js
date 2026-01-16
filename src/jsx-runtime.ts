@@ -113,6 +113,20 @@ function createElement(
         el.className = value
       } else if (key === 'style' && typeof value === 'object') {
         Object.assign(el.style, value)
+      } else if (key === 'style') {
+        el.style.cssText = String(value ?? '')
+      } else if (key === 'id') {
+        el.id = String(value)
+      } else if (key === 'value') {
+        ;(el as HTMLInputElement).value = String(value ?? '')
+      } else if (key === 'type') {
+        ;(el as HTMLInputElement).type = String(value)
+      } else if (key === 'placeholder') {
+        ;(el as HTMLInputElement).placeholder = String(value)
+      } else if (key === 'checked') {
+        ;(el as HTMLInputElement).checked = Boolean(value)
+      } else if (key === 'disabled') {
+        ;(el as HTMLInputElement).disabled = Boolean(value)
       } else {
         el.setAttribute(key, String(value))
       }
