@@ -247,8 +247,9 @@ function updateDerived(source: VAtom<any>): void {
   const visited = new Set<VAtom<any>>()
   const queue = [...sourceState.dependents]
   
-  while (queue.length > 0) {
-    const atom = queue.shift()!
+  let i = 0
+  while (i < queue.length) {
+    const atom = queue[i++]
     if (visited.has(atom)) continue
     visited.add(atom)
     
