@@ -39,7 +39,17 @@ export function h(
   props: Props | null,
   ...children: any[]
 ): VNode {
-  return createElement(type, { ...props, children: children.flat() })
+  const flat: any[] = []
+  for (const child of children) {
+    if (Array.isArray(child)) {
+      for (const nested of child) {
+        flat.push(nested)
+      }
+    } else {
+      flat.push(child)
+    }
+  }
+  return createElement(type, { ...props, children: flat })
 }
 
 function createElement(
