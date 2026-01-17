@@ -68,60 +68,114 @@ let updateBufferPtr: number = 0 // Optimization C: Cache buffer pointer
 let cachedUpdateBuffer: Int32Array | null = null
 const UPDATE_BUFFER_SIZE = 4096
 
-export async function initWasm(wasmPath?: string): Promise<void> {
+type InitWasmPhase = 'fetch' | 'compile' | 'setup'
+export interface InitWasmOptions {
+  wasmPath?: string
+  // Skip network fetch when the module is precompiled/bundled
+  module?: WebAssembly.Module | Promise<WebAssembly.Module>
+  // Optional perf hook for profiling startup
+  onPerf?: (phase: InitWasmPhase, durationMs: number) => void
+}
+
+let wasmInitPromise: Promise<void> | null = null
+
+export async function initWasm(options?: string | InitWasmOptions): Promise<void> {
   if (wasmExports) return
+  if (wasmInitPromise) return wasmInitPromise
 
-  try {
-    const url = wasmPath || new URL('../dist/vsignal.wasm', import.meta.url).href
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      console.error(`Failed to load WASM: ${response.status} ${response.statusText}`)
-      return
-    }
-
-    const bytes = await response.arrayBuffer()
-
-    const imports = {
-      wasi_snapshot_preview1: {
-        fd_write: (fd: number, iovs: number, iovs_len: number, nwritten: number) => 0,
-        proc_exit: (code: number) => {},
-      }
-    };
-
-    // Fallback for older builds or if imports are not needed (though inspection says they are)
-    // const result = await WebAssembly.instantiate(bytes, {})
-    const result = await WebAssembly.instantiate(bytes, imports)
-    wasmExports = (result as any).instance.exports as unknown as VWasmExports
-
-    // if (wasmExports._start) {
-    //   wasmExports._start()
-    // }
-
-    // Initialize graph in WASM
-    // Calculate required memory: Graph struct (~1MB) + Safety Margin (~1MB) = 2MB total
-    const GRAPH_SIZE = 1024 * 1024
-    const SAFETY_MARGIN = 1024 * 1024
-    const REQUIRED_BYTES = GRAPH_SIZE + SAFETY_MARGIN
-    const PAGE_SIZE = 65536
-
-    const currentBytes = wasmExports.memory.buffer.byteLength
-    const neededPages = Math.ceil((REQUIRED_BYTES - currentBytes) / PAGE_SIZE)
-
-    if (neededPages > 0) {
-      try {
-        wasmExports.memory.grow(neededPages)
-      } catch (e) {
-        // Ignore if memory is already large enough or fixed
-      }
-    }
-
-    graphPtr = wasmExports.init_graph()
-    updateBufferPtr = wasmExports.get_update_buffer_ptr(graphPtr)
-    cachedUpdateBuffer = new Int32Array(wasmExports.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
-  } catch (error) {
-    wasmExports = null
+  const opts: InitWasmOptions = typeof options === 'string' ? { wasmPath: options } : (options || {})
+  const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? () => performance.now()
+    : () => Date.now()
+  const measure = <T>(phase: InitWasmPhase, run: () => Promise<T>): Promise<T> => {
+    if (!opts.onPerf) return run()
+    const start = now()
+    return run().then((result) => {
+      opts.onPerf!(phase, now() - start)
+      return result
+    })
   }
+
+  const imports = {
+    wasi_snapshot_preview1: {
+      fd_write: (_fd: number, _iovs: number, _iovs_len: number, _nwritten: number) => 0,
+      proc_exit: (_code: number) => {},
+    }
+  }
+
+  wasmInitPromise = (async () => {
+    let succeeded = false
+    try {
+      let instantiated: WebAssembly.WebAssemblyInstantiatedSource | WebAssembly.Instance | null = null
+
+      if (opts.module) {
+        const module = await opts.module
+        instantiated = await measure('compile', () => WebAssembly.instantiate(module, imports))
+      } else {
+        const url = opts.wasmPath || new URL('../dist/vsignal.wasm', import.meta.url).href
+        const response = await measure('fetch', () => fetch(url))
+
+        if (!response.ok) {
+          console.error(`Failed to load WASM: ${response.status} ${response.statusText}`)
+          return
+        }
+
+        if (typeof WebAssembly.instantiateStreaming === 'function') {
+          try {
+            instantiated = await measure('compile', () => WebAssembly.instantiateStreaming(response.clone(), imports))
+          } catch {
+            // Some servers do not return the correct MIME type; fall through to arrayBuffer
+          }
+        }
+
+        if (!instantiated) {
+          const bytes = await response.arrayBuffer()
+          instantiated = await measure('compile', () => WebAssembly.instantiate(bytes, imports))
+        }
+      }
+
+      if (!instantiated) {
+        return
+      }
+
+      const exports = 'instance' in instantiated ? instantiated.instance.exports : instantiated.exports
+      wasmExports = exports as unknown as VWasmExports
+
+      await measure('setup', async () => {
+        // Initialize graph in WASM
+        // Calculate required memory: Graph struct (~1MB) + Safety Margin (~1MB) = 2MB total
+        const GRAPH_SIZE = 1024 * 1024
+        const SAFETY_MARGIN = 1024 * 1024
+        const REQUIRED_BYTES = GRAPH_SIZE + SAFETY_MARGIN
+        const PAGE_SIZE = 65536
+
+        const currentBytes = wasmExports!.memory.buffer.byteLength
+        const neededPages = Math.ceil((REQUIRED_BYTES - currentBytes) / PAGE_SIZE)
+
+        if (neededPages > 0) {
+          try {
+            wasmExports!.memory.grow(neededPages)
+          } catch {
+            // Ignore if memory is already large enough or fixed
+          }
+        }
+
+        graphPtr = wasmExports!.init_graph()
+        updateBufferPtr = wasmExports!.get_update_buffer_ptr(graphPtr)
+        cachedUpdateBuffer = new Int32Array(wasmExports!.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
+      })
+      succeeded = true
+    } catch (error) {
+      wasmExports = null
+      wasmInitPromise = null
+    } finally {
+      if (!succeeded) {
+        wasmInitPromise = null
+      }
+    }
+  })()
+
+  return wasmInitPromise!
 }
 
 // Optimization B: Array for ID lookup

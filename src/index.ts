@@ -5,7 +5,7 @@
 
 // Core
 export { v, derive, get, set, subscribe, use, useValue, useSet, initWasm, wasm, withRenderContext } from './core'
-export type { VAtom } from './core'
+export type { VAtom, InitWasmOptions } from './core'
 
 // JSX
 // Note: JSX exports are available via 'vitrio/jsx-runtime' or 'vitrio/jsx-dev-runtime'

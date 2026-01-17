@@ -101,8 +101,11 @@ export function For<T>(props: {
   key?: (item: T, index: number) => string | number
 }): VNode {
   const marker = document.createComment('for')
-  const nodeMap = new Map<string | number, { node: Node; item: T; indexFn: () => number }>()
-  let currentKeys: (string | number)[] = []
+  type Key = string | number
+  type ForEntry = { node: Node; item: T; index: number; indexFn: () => number; indexRef: { value: number } }
+
+  const nodeMap = new Map<Key, ForEntry>()
+  let currentKeys: Key[] = []
   
   // Default key function uses index
   const getKey = props.key || ((_item: T, i: number) => i)
@@ -116,14 +119,16 @@ export function For<T>(props: {
   
   const update = () => {
     const items = resolve(props.each)
-    const parent = marker.parentNode
-    
-    // If not mounted yet, render to fragment instead
-    const targetParent: Node = parent || frag
-    
-    const newKeys = items.map((item, i) => getKey(item, i))
+    const targetParent: Node = marker.parentNode || frag
+    const len = items.length
+    const newKeys: Key[] = new Array(len)
 
-    if (currentKeys.length > 0 && newKeys.length >= currentKeys.length) {
+    for (let i = 0; i < len; i++) {
+      newKeys[i] = getKey(items[i], i)
+    }
+
+    // Fast path: pure append when prefix is unchanged
+    if (currentKeys.length > 0 && len >= currentKeys.length) {
       let isPrefix = true
       for (let i = 0; i < currentKeys.length; i++) {
         if (currentKeys[i] !== newKeys[i]) {
@@ -137,14 +142,14 @@ export function For<T>(props: {
           ? nodeMap.get(currentKeys[currentKeys.length - 1])?.node || marker
           : marker
 
-        for (let i = currentKeys.length; i < items.length; i++) {
-          const item = items[i]
+        for (let i = currentKeys.length; i < len; i++) {
           const key = newKeys[i]
-          let currentIndex = i
-          const indexFn = () => currentIndex
-          const node = renderFn(item, indexFn)
+          const indexRef = { value: i }
+          const indexFn = () => indexRef.value
+          const node = renderFn(items[i], indexFn)
           if (node instanceof Node) {
-            nodeMap.set(key, { node, item, indexFn })
+            const entry: ForEntry = { node, item: items[i], index: i, indexFn, indexRef }
+            nodeMap.set(key, entry)
             targetParent.insertBefore(node, prevNode.nextSibling)
             prevNode = node
           }
@@ -155,15 +160,16 @@ export function For<T>(props: {
       }
     }
 
-    if (currentKeys.length > 0 && newKeys.length <= currentKeys.length) {
-      let j = 0
-      for (let i = 0; i < currentKeys.length; i++) {
-        if (j < newKeys.length && currentKeys[i] === newKeys[j]) {
-          j++
+    // Fast path: shrink only (no reorders), keep stable order while removing missing nodes
+    if (currentKeys.length > 0 && len <= currentKeys.length) {
+      let nextIdx = 0
+      for (let i = 0; i < currentKeys.length && nextIdx < len; i++) {
+        if (currentKeys[i] === newKeys[nextIdx]) {
+          nextIdx++
         }
       }
 
-      if (j === newKeys.length) {
+      if (nextIdx === len) {
         const newKeySet = new Set(newKeys)
         for (const oldKey of currentKeys) {
           if (!newKeySet.has(oldKey)) {
@@ -174,13 +180,28 @@ export function For<T>(props: {
             }
           }
         }
+
+        let prevNode: Node = marker
+        for (let i = 0; i < len; i++) {
+          const key = newKeys[i]
+          const entry = nodeMap.get(key)
+          if (entry) {
+            entry.index = i
+            entry.indexRef.value = i
+            if (prevNode.nextSibling !== entry.node) {
+              targetParent.insertBefore(entry.node, prevNode.nextSibling)
+            }
+            prevNode = entry.node
+          }
+        }
+
         currentKeys = newKeys
         return
       }
     }
 
     const newKeySet = new Set(newKeys)
-    
+
     // Remove nodes that no longer exist
     for (const oldKey of currentKeys) {
       if (!newKeySet.has(oldKey)) {
@@ -191,41 +212,38 @@ export function For<T>(props: {
         }
       }
     }
-    
+
     // Insert/reorder nodes (iterate in order)
     let prevNode: Node = marker
-    for (let i = 0; i < items.length; i++) {
+    for (let i = 0; i < len; i++) {
       const item = items[i]
       const key = newKeys[i]
-      
+
       let entry = nodeMap.get(key)
       if (!entry) {
-        // Create new node
-        let currentIndex = i
-        const indexFn = () => currentIndex
+        const indexRef = { value: i }
+        const indexFn = () => indexRef.value
         const node = renderFn(item, indexFn)
         if (node instanceof Node) {
-          entry = { node, item, indexFn }
+          entry = { node, item, index: i, indexFn, indexRef }
           nodeMap.set(key, entry)
-          // Insert after prevNode
           targetParent.insertBefore(node, prevNode.nextSibling)
         }
       } else {
-        // Reuse existing node, update index and move if needed
-        const closureIndex = i
-        // @ts-ignore - update the index closure
-        entry.indexFn = () => closureIndex
-        
+        entry.item = item
+        entry.index = i
+        entry.indexRef.value = i
+
         if (prevNode.nextSibling !== entry.node) {
           targetParent.insertBefore(entry.node, prevNode.nextSibling)
         }
       }
-      
+
       if (entry) {
         prevNode = entry.node
       }
     }
-    
+
     currentKeys = newKeys
   }
   
