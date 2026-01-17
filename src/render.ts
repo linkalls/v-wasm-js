@@ -3,7 +3,7 @@
  * Mount components to DOM - Solid-style (create once, update bindings)
  */
 
-import { type VNode } from './jsx-runtime'
+import { cleanupNode, type VNode } from './jsx-runtime'
 
 /**
  * Render a component to a container
@@ -16,8 +16,11 @@ export function render(component: VNode | (() => VNode), container: Element | nu
     throw new Error('Container element not found')
   }
   
-  // Clear container once
-  container.innerHTML = ''
+  // Clear container once with cleanup to drop subscriptions
+  while (container.firstChild) {
+    cleanupNode(container.firstChild)
+    container.removeChild(container.firstChild)
+  }
   
   // Create DOM once - reactive bindings in jsx-runtime handle updates
   const result = typeof component === 'function' ? component() : component

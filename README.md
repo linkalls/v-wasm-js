@@ -9,15 +9,15 @@ English | [日本語](./README.ja.md)
 
 ## 🚀 Performance
 
-**Vitrio outperforms Solid.js by up to 50%** on reactivity benchmarks:
+**Vitrio is 3-4x faster than Solid/React** on interaction-heavy benchmarks:
 
 | Metric | Vitrio | SolidJS | React |
 |--------|--------|---------|-------|
-| Bundle Size | **10KB** | 13KB | 144KB |
-| 100 Clicks (ms) | **7.8** | 8.3 | 9.0 |
-| List Updates (ms) | **5.9** | 11.9 | 8.7 |
+| Bundle Size | **11.6KB** | 13.0KB | 144.1KB |
+| 100 Clicks (ms) | **2.18** | 10.17 | 11.26 |
+| List Updates (ms) | **2.95** | 11.31 | 8.75 |
 
-> 📊 See [results.md](./results.md) for full details.
+> 📊 See [results.md](./results.md) and [docs/benchmarks.md](./docs/benchmarks.md) for full details.
 
 ## Features
 
@@ -26,6 +26,7 @@ English | [日本語](./README.ja.md)
 - 🏎️ **Solid-style DOM** - Create once, update bindings (no VDOM diffing)
 - 🎨 **React-like TSX** - Write components naturally with JSX
 - 📦 **Tiny** - ~8KB minified
+- 🧹 **Auto-cleanup** - Reactive bindings are disposed when nodes are removed
 - 🔧 **Bun-first** - Built for modern tooling
 
 ## Installation

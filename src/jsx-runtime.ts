@@ -3,7 +3,7 @@
  * Standard JSX runtime exports for react-jsx transform
  */
 
-import { withRenderContext } from './core'
+import { disposeEffect, withRenderContext } from './core'
 
 export type VNode = Element | Text | DocumentFragment
 
@@ -16,6 +16,33 @@ export type Props = Record<string, any> & {
 }
 
 type Component = (props: Props) => VNode
+
+const CLEANUP_SYMBOL = Symbol('v-cleanup')
+
+type CleanupFn = () => void
+
+export function registerCleanup(node: Node, cleanup: CleanupFn): void {
+  const existing = (node as any)[CLEANUP_SYMBOL] as CleanupFn[] | undefined
+  if (existing) {
+    existing.push(cleanup)
+  } else {
+    ;(node as any)[CLEANUP_SYMBOL] = [cleanup]
+  }
+}
+
+export function cleanupNode(node: Node): void {
+  const cleanups = (node as any)[CLEANUP_SYMBOL] as CleanupFn[] | undefined
+  if (cleanups) {
+    for (const cleanup of cleanups) {
+      cleanup()
+    }
+    ;(node as any)[CLEANUP_SYMBOL] = undefined
+  }
+
+  if (node instanceof Element || node instanceof DocumentFragment) {
+    node.childNodes.forEach((child) => cleanupNode(child))
+  }
+}
 
 /**
  * JSX Factory function (jsx/jsxs for react-jsx transform)
@@ -84,31 +111,30 @@ function createElement(
       } else if (typeof value === 'function') {
         // Reactive binding - subscribe to changes
         const updateProp = () => {
-          withRenderContext(() => {
-            const result = value()
-            if (key === 'class' || key === 'className') {
-              el.className = String(result ?? '')
-            } else if (key === 'style') {
-              if (typeof result === 'object' && result !== null) {
-                // Reset and apply new styles
-                el.removeAttribute('style')
-                Object.assign(el.style, result)
-              } else {
-                el.setAttribute('style', String(result ?? ''))
-              }
+          const result = value()
+          if (key === 'class' || key === 'className') {
+            el.className = String(result ?? '')
+          } else if (key === 'style') {
+            if (typeof result === 'object' && result !== null) {
+              // Reset and apply new styles
+              el.removeAttribute('style')
+              Object.assign(el.style, result)
             } else {
-              // Generic attribute
-              if (result == null || result === false) {
-                el.removeAttribute(key)
-              } else if (result === true) {
-                el.setAttribute(key, '')
-              } else {
-                el.setAttribute(key, String(result))
-              }
+              el.setAttribute('style', String(result ?? ''))
             }
-          })
+          } else {
+            // Generic attribute
+            if (result == null || result === false) {
+              el.removeAttribute(key)
+            } else if (result === true) {
+              el.setAttribute(key, '')
+            } else {
+              el.setAttribute(key, String(result))
+            }
+          }
         }
-        updateProp()
+        withRenderContext(updateProp)
+        registerCleanup(el, () => disposeEffect(updateProp))
       } else if (key === 'class' || key === 'className') {
         el.className = value
       } else if (key === 'style' && typeof value === 'object') {
@@ -149,14 +175,13 @@ function appendChildren(parent: Element, children: any[]): void {
       
       // Create an update function that will be called when atoms change
       const update = () => {
-        withRenderContext(() => {
-          const result = child()
-          textNode.textContent = String(result ?? '')
-        })
+        const result = child()
+        textNode.textContent = String(result ?? '')
       }
       
       // Initial render with subscription tracking
-      update()
+      withRenderContext(update)
+      registerCleanup(textNode, () => disposeEffect(update))
       
       parent.appendChild(textNode)
     } else if (child instanceof Node) {

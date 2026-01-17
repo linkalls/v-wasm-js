@@ -7,6 +7,7 @@
 type Getter = <T>(atom: VAtom<T>) => T
 type Setter = <T>(atom: VAtom<T>, value: T | ((prev: T) => T)) => void
 type Subscriber = () => void
+type DependencySet = Set<VAtom<any>>
 
 export interface VAtom<T> {
   _brand: 'v-atom'
@@ -27,6 +28,8 @@ interface VAtomState<T> {
 
 // === Render Context ===
 let currentComponent: (() => void) | null = null
+let currentDeps: DependencySet | null = null
+const componentDeps = new WeakMap<Subscriber, DependencySet>()
 
 // === Batching ===
 const pendingSubscribers = new Set<Subscriber>()
@@ -183,6 +186,30 @@ const idToAtomArray: VAtom<any>[] = []
 
 const fastGet: Getter = (a) => a._state ? a._state.value : getAtomState(a).value
 
+function trackSubscriber<T>(state: VAtomState<T>, atom: VAtom<T>): void {
+  if (currentComponent) {
+    state.subscribers.add(currentComponent)
+    if (currentDeps) {
+      currentDeps.add(atom)
+    }
+  }
+}
+
+function cleanupComponent(component: Subscriber): void {
+  const deps = componentDeps.get(component)
+  if (!deps) return
+
+  deps.forEach((atom) => {
+    const st = atom._state
+    if (st) {
+      st.subscribers.delete(component)
+    }
+  })
+
+  componentDeps.delete(component)
+  pendingSubscribers.delete(component)
+}
+
 // Helper to interact with WASM graph
 function registerNodeInWasm(atom: VAtom<any>) {
   if (wasmExports && typeof atom.id === 'undefined') {
@@ -260,11 +287,7 @@ v.from = derive
 
 export function get<T>(atom: VAtom<T>): T {
   const state = getAtomState(atom)
-  
-  if (currentComponent) {
-    state.subscribers.add(currentComponent)
-  }
-  
+  trackSubscriber(state, atom)
   return state.value
 }
 
@@ -359,11 +382,7 @@ type UseAtomResult<T> = [T, (value: T | ((prev: T) => T)) => void]
 
 export function use<T>(atom: VAtom<T>): UseAtomResult<T> {
   const state = getAtomState(atom)
-  
-  if (currentComponent) {
-    state.subscribers.add(currentComponent)
-  }
-  
+  trackSubscriber(state, atom)
   return [
     state.value,
     (value) => set(atom, value)
@@ -379,15 +398,27 @@ export function useSet<T>(atom: VAtom<T>): (value: T | ((prev: T) => T)) => void
 }
 
 export function withRenderContext(component: () => void): void {
+  cleanupComponent(component)
+  const deps: DependencySet = new Set()
+  componentDeps.set(component, deps)
+
+  const prevComponent = currentComponent
+  const prevDeps = currentDeps
   currentComponent = component
+  currentDeps = deps
   try {
     component()
   } finally {
-    currentComponent = null
+    currentComponent = prevComponent
+    currentDeps = prevDeps
   }
 }
 
 // Backwards compatibility/Exports for future use
 export function wasm() {
     return wasmExports
+}
+
+export function disposeEffect(component: Subscriber): void {
+  cleanupComponent(component)
 }

@@ -52,6 +52,9 @@ function FruitList() {
 |------|------|-------------|
 | `each` | `T[] \| () => T[]` | 配列データ |
 | `children` | `(item: T, index: number) => VNode` | 各要素のレンダー関数 |
+| `key` | `(item: T, index: number) => string \| number` | 任意: キー付き差分に利用 |
+
+> Note: `<For>` は削除されたノードに紐づくリアクティブバインディングを自動で破棄するため、リストの追加・削除を繰り返しても購読が溜まりません。
 
 ---
 

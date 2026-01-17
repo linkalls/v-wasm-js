@@ -3,8 +3,8 @@
  * Solid-style Show/For/Switch with marker-based DOM updates
  */
 
-import { type VNode } from './jsx-runtime'
-import { withRenderContext, subscribe, get, type VAtom } from './core'
+import { cleanupNode, registerCleanup, type VNode } from './jsx-runtime'
+import { disposeEffect, withRenderContext } from './core'
 
 type MaybeReactive<T> = T | (() => T)
 
@@ -81,7 +81,9 @@ export function Show(props: {
   // Create fragment container
   const frag = document.createDocumentFragment()
   frag.appendChild(marker)
-  
+
+  registerCleanup(marker, () => disposeEffect(update))
+
   // Initial render with subscription
   withRenderContext(update)
   
@@ -175,6 +177,7 @@ export function For<T>(props: {
           if (!newKeySet.has(oldKey)) {
             const entry = nodeMap.get(oldKey)
             if (entry) {
+              cleanupNode(entry.node)
               entry.node.parentNode?.removeChild(entry.node)
               nodeMap.delete(oldKey)
             }
@@ -207,6 +210,7 @@ export function For<T>(props: {
       if (!newKeySet.has(oldKey)) {
         const entry = nodeMap.get(oldKey)
         if (entry) {
+          cleanupNode(entry.node)
           entry.node.parentNode?.removeChild(entry.node)
           nodeMap.delete(oldKey)
         }
@@ -246,7 +250,9 @@ export function For<T>(props: {
 
     currentKeys = newKeys
   }
-  
+
+  registerCleanup(marker, () => disposeEffect(update))
+
   // Initial render with subscription
   withRenderContext(update)
   

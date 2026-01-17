@@ -11,33 +11,32 @@ node benchmarks/run-node.mjs
 
 > ⚠️ Note: The current benchmark harness measures Vitrio load time from `DOMContentLoaded` without waiting for hydration. See `benchmarks/run-node.mjs` for details.
 
-## Benchmark Results (2026-01-16)
+## Benchmark Results (2026-01-18)
 
 | Metric | Vitrio | SolidJS | React |
 |--------|--------|---------|-------|
-| Bundle Size | **11.0KB** | 13.0KB | 144.1KB |
-| Avg Load Time | **47.20ms** | 111.25ms | 123.21ms |
-| 100 Clicks | **7.07ms** | 48.82ms | 42.20ms |
-| List Update | **11.59ms** | 44.26ms | 38.48ms |
+| Bundle Size | **11.6KB** | 13.0KB | 144.1KB |
+| Avg Load Time | **14.34ms** | 36.22ms | 40.52ms |
+| 100 Clicks | **2.18ms** | 10.17ms | 11.26ms |
+| List Update | **2.95ms** | 11.31ms | 8.75ms |
 
 ## Performance Analysis
 
 ### List Updates
-- Vitrio is **282% faster** than Solid (11.6ms vs 44.3ms)
-- Vitrio is **232% faster** than React (11.6ms vs 38.5ms)
-- Uses optimized `<For>` component with keyed reconciliation and fast append/removal paths
+- Vitrio is **284% faster** than Solid (2.95ms vs 11.31ms)
+- Vitrio is **197% faster** than React (2.95ms vs 8.75ms)
+- Uses optimized `<For>` component with keyed reconciliation, fast append/removal paths, and automatic cleanup of removed nodes.
 
 ### Counter (100 clicks)
-- Vitrio is **591% faster** than Solid (7.1ms vs 48.8ms)
-- Vitrio is **497% faster** than React (7.1ms vs 42.2ms)
+- Vitrio is **367% faster** than Solid (2.18ms vs 10.17ms)
+- Vitrio is **416% faster** than React (2.18ms vs 11.26ms)
 
 ### Bundle Size
 - **Vitrio is 15% smaller than Solid** (11.0KB vs 13.0KB)
 - **Vitrio is 92% smaller than React** (11.0KB vs 144.1KB)
 
 ### Load Time
-- Vitrio is fastest in this run (measured at `DOMContentLoaded`)
-- Solid/React remain slower in this run
+- Vitrio remains fastest in this run (measured at `DOMContentLoaded`)
 
 ## Status Against “Win Everywhere”
 In this run, Vitrio leads in **bundle size**, **interaction time**, **list updates**, and **load time** (see note above about hydration timing).
