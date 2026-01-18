@@ -9,13 +9,17 @@ English | [日本語](./README.ja.md)
 
 ## 🚀 Performance
 
-**Vitrio is 3-4x faster than Solid/React** on interaction-heavy benchmarks:
+**Benchmark snapshot (2026-01-17):**
 
-| Metric | Vitrio | SolidJS | React |
-|--------|--------|---------|-------|
-| Bundle Size | **11.6KB** | 13.0KB | 144.1KB |
-| 100 Clicks (ms) | **2.18** | 10.17 | 11.26 |
-| List Updates (ms) | **2.95** | 11.31 | 8.75 |
+| Metric | Vitrio (WASM) | SolidJS | React |
+|--------|---------------|---------|-------|
+| Bundle Size (bytes) | 11881 | 12970 | 144132 |
+| Avg Load Time (ms) | 14.34 | 36.22 | 40.52 |
+| Interaction (100 clicks) (ms) | 2.18 | 10.17 | 11.26 |
+| List Update (50 add, 25 remove) (ms) | 2.95 | 11.31 | 8.75 |
+
+- **Counter (100 clicks):** 366.5% faster than Solid, 416.6% faster than React.
+- **List updates:** 283.9% faster than Solid.
 
 > 📊 See [results.md](./results.md) and [docs/benchmarks.md](./docs/benchmarks.md) for full details.
 
