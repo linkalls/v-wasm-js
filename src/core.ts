@@ -107,7 +107,6 @@ export async function initWasm(options?: string | InitWasmOptions): Promise<void
   }
 
   wasmInitPromise = (async () => {
-    let succeeded = false
     try {
       let instantiated: WebAssembly.WebAssemblyInstantiatedSource | WebAssembly.Instance | null = null
 
@@ -119,14 +118,16 @@ export async function initWasm(options?: string | InitWasmOptions): Promise<void
         const response = await measure('fetch', () => fetch(url))
 
         if (!response.ok) {
-          console.error(`Failed to load WASM: ${response.status} ${response.statusText}`)
-          return
+          const message = `Failed to load WASM: ${response.status} ${response.statusText}`
+          console.error(message)
+          throw new Error(message)
         }
 
         if (typeof WebAssembly.instantiateStreaming === 'function') {
           try {
             instantiated = await measure('compile', () => WebAssembly.instantiateStreaming(response.clone(), imports))
-          } catch {
+          } catch (error) {
+            console.warn('WASM instantiateStreaming failed; falling back to arrayBuffer.', error)
             // Some servers do not return the correct MIME type; fall through to arrayBuffer
           }
         }
@@ -138,7 +139,7 @@ export async function initWasm(options?: string | InitWasmOptions): Promise<void
       }
 
       if (!instantiated) {
-        return
+        throw new Error('WASM instantiation failed.')
       }
 
       const exports = 'instance' in instantiated ? instantiated.instance.exports : instantiated.exports
@@ -158,7 +159,8 @@ export async function initWasm(options?: string | InitWasmOptions): Promise<void
         if (neededPages > 0) {
           try {
             wasmExports!.memory.grow(neededPages)
-          } catch {
+          } catch (error) {
+            console.warn('WASM memory grow failed; continuing with existing memory.', error)
             // Ignore if memory is already large enough or fixed
           }
         }
@@ -167,14 +169,11 @@ export async function initWasm(options?: string | InitWasmOptions): Promise<void
         updateBufferPtr = wasmExports!.get_update_buffer_ptr(graphPtr)
         cachedUpdateBuffer = new Int32Array(wasmExports!.memory.buffer, updateBufferPtr, UPDATE_BUFFER_SIZE)
       })
-      succeeded = true
     } catch (error) {
       wasmExports = null
       wasmInitPromise = null
-    } finally {
-      if (!succeeded) {
-        wasmInitPromise = null
-      }
+      console.error('Failed to initialize WASM.', error)
+      throw error
     }
   })()
 

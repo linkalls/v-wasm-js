@@ -4,3 +4,4 @@
 - Ran benchmark builds for Vitrio, Solid, and React and refreshed `results.md` plus benchmark summary numbers in `docs/benchmarks.md`.
 - Clarified benchmark write-up to reflect which metrics are leading vs still behind.
 - Optimized `<For>` update paths and adjusted benchmark harness/load timing, then reran benchmarks.
+- Adjusted `initWasm` error handling to log failures, reject on bad WASM paths, and keep the initialization promise behavior consistent.
