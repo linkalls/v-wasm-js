@@ -1,14 +1,15 @@
 # Benchmark Results
 
-| Metric            | Vitrio     | SolidJS | React   |
-| ----------------- | ---------- | ------- | ------- |
-| Bundle Size       | **11.9KB** | 13.0KB  | 144.1KB |
-| 100 Clicks (ms)   | **2.45**   | 11.02   | 11.74   |
-| List Updates (ms) | **3.47**   | 11.84   | 9.18    |
+| Metric | Vitrio (WASM) | SolidJS | React |
+|--------|---------------|---------|-------|
+| Bundle Size (bytes) | 11900 | 12970 | 144132 |
+| Avg Load Time (ms) | 12.50 | 36.94 | 34.69 |
+| Interaction (100 clicks) (ms) | 2.62 | 10.15 | 10.17 |
+| List Update (50 add, 25 remove) (ms) | 3.75 | 10.50 | 9.40 |
 
 ## Performance Comparison
 
-- **Counter (100 clicks)**: Vitrio is 272.4% faster than Solid, 351.3% faster than React
-- **List Updates**: Vitrio is 151.0% faster than Solid
+- **Counter (100 clicks)**: Vitrio is 287.6% faster than Solid, 288.4% faster than React
+- **List Updates**: Vitrio is 179.8% faster than Solid
 
-*Run on 2026-01-20T14:56:58.617Z*
+*Run on 2026-01-20T15:03:01.659Z*

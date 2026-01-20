@@ -137,10 +137,13 @@ export function For<T>(props: {
     const items = resolve(props.each);
     const targetParent: Node = marker.parentNode || frag;
     const len = items.length;
+    // Pre-allocate array with exact size
     const newKeys: Key[] = new Array(len);
-
-    for (let i = 0; i < len; i++) {
+    // Inline key generation for speed
+    let i = 0;
+    while (i < len) {
       newKeys[i] = getKey(items[i], i);
+      i++;
     }
 
     // Fast path: pure append when prefix is unchanged

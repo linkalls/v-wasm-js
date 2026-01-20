@@ -37,20 +37,16 @@ let flushPending = false;
 
 function flush() {
   flushPending = false;
-  // Copy to array to avoid iterator invalidation
   const copy = Array.from(pendingSubscribers);
   pendingSubscribers.clear();
-  // for-of is faster than forEach (no function call overhead)
-  for (const fn of copy) {
-    withRenderContext(fn);
+  const len = copy.length;
+  for (let i = 0; i < len; i++) {
+    withRenderContext(copy[i]);
   }
 }
 
 function scheduleUpdates(subscribers: Set<Subscriber>) {
-  // for-of is faster than forEach for Set iteration
-  for (const sub of subscribers) {
-    pendingSubscribers.add(sub);
-  }
+  subscribers.forEach(pendingSubscribers.add, pendingSubscribers);
   if (!flushPending) {
     flushPending = true;
     queueMicrotask(flush);

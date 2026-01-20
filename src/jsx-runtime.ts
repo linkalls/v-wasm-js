@@ -38,18 +38,20 @@ export function registerCleanup(node: Node, cleanup: CleanupFn): void {
 }
 
 export function cleanupNode(node: Node): void {
-  const cleanups = (node as any)[CLEANUP_SYMBOL] as CleanupFn[] | undefined;
-  if (cleanups) {
-    for (const cleanup of cleanups) {
-      cleanup();
+  // Stack-based iteration to avoid recursion overhead
+  const stack: Node[] = [node];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const cleanups = (current as any)[CLEANUP_SYMBOL] as
+      | CleanupFn[]
+      | undefined;
+    if (cleanups) {
+      for (let i = 0, len = cleanups.length; i < len; i++) cleanups[i]();
+      (current as any)[CLEANUP_SYMBOL] = undefined;
     }
-    (node as any)[CLEANUP_SYMBOL] = undefined;
-  }
-
-  if (node instanceof Element || node instanceof DocumentFragment) {
-    // for-of is faster than forEach
-    for (const child of Array.from(node.childNodes)) {
-      cleanupNode(child);
+    if (current instanceof Element || current instanceof DocumentFragment) {
+      const children = current.childNodes;
+      for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
     }
   }
 }
