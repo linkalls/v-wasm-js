@@ -4,6 +4,7 @@
  */
 
 import { disposeEffect, withRenderContext } from './core'
+import { addDelegatedEvent } from './events'
 
 export type VNode = Element | Text | DocumentFragment
 
@@ -105,7 +106,7 @@ function createElement(
       if (key.startsWith('on')) {
         // Event handlers: onClick -> click
         const event = key.slice(2).toLowerCase()
-        el.addEventListener(event, value)
+        addDelegatedEvent(el, event, value)
       } else if (key === 'ref') {
         value(el)
       } else if (typeof value === 'function') {
@@ -165,7 +166,12 @@ function createElement(
   return el
 }
 
-function appendChildren(parent: Element, children: any[]): void {
+function appendChildren(parent: Element | DocumentFragment, children: any[]): void {
+  // Use fragment for bulk append if parent is not already a fragment (and we have multiple children)
+  // This helps performance if parent is already attached to DOM (though typically it's not)
+  const useFragment = children.length > 1 && !(parent instanceof DocumentFragment)
+  const target = useFragment ? document.createDocumentFragment() : parent
+
   for (const child of children) {
     if (child == null || child === false) continue
     
@@ -183,14 +189,18 @@ function appendChildren(parent: Element, children: any[]): void {
       withRenderContext(update)
       registerCleanup(textNode, () => disposeEffect(update))
       
-      parent.appendChild(textNode)
+      target.appendChild(textNode)
     } else if (child instanceof Node) {
-      parent.appendChild(child)
+      target.appendChild(child)
     } else if (Array.isArray(child)) {
-      appendChildren(parent, child)
+      appendChildren(target, child)
     } else {
-      parent.appendChild(document.createTextNode(String(child)))
+      target.appendChild(document.createTextNode(String(child)))
     }
+  }
+
+  if (useFragment) {
+    parent.appendChild(target)
   }
 }
 
