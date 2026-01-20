@@ -1,0 +1,36 @@
+Servers running: Vitrio(4001), Solid(4002), React(4003)
+Launching browser...
+Browser launched!
+Page created!
+
+Benchmarking Vitrio...
+  Load time: 162.27ms
+  Interact time: 37.48ms
+  Final count: 100
+  List update time: 33.50ms
+  Final list items: 50
+
+Benchmarking Solid...
+  Load time: 125.81ms
+  Interact time: 42.58ms
+  Final count: 100
+  List update time: 37.97ms
+  Final list items: 29
+
+Benchmarking React...
+  Load time: 120.26ms
+  Interact time: 34.75ms
+  Final count: 100
+  List update time: 41.22ms
+  Final list items: 0
+
+=== Results ===
+┌────────┬────────────────────┬───────────────────┬────────────────────┬────────┐
+│        │ load               │ interact          │ listUpdate         │ size   │
+├────────┼────────────────────┼───────────────────┼────────────────────┼────────┤
+│ vitrio │ 162.26790439999996 │ 37.48407300000008 │ 33.49698099999978  │ 12430  │
+│  solid │ 125.81391520000007 │ 42.58053300000029 │ 37.97251000000006  │ 12970  │
+│  react │ 120.26022859999993 │ 34.75405099999989 │ 41.221668000000136 │ 144132 │
+└────────┴────────────────────┴───────────────────┴────────────────────┴────────┘
+
+Results saved to benchmarks/results.md
