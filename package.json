@@ -1,26 +1,26 @@
 {
   "name": "@potetotown/vitrio",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Ultra-minimal reactive UI framework with derive() API",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
   },
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
     },
     "./jsx-runtime": {
-      "import": "./dist/jsx-runtime.js",
-      "types": "./dist/jsx-runtime.d.ts"
+      "import": "./dist/jsx-runtime.mjs",
+      "types": "./dist/jsx-runtime.d.mts"
     },
     "./jsx-dev-runtime": {
-      "import": "./dist/jsx-dev-runtime.js",
-      "types": "./dist/jsx-dev-runtime.d.ts"
+      "import": "./dist/jsx-dev-runtime.mjs",
+      "types": "./dist/jsx-dev-runtime.d.mts"
     },
     "./wasm": "./dist/vsignal.wasm"
   },
@@ -31,11 +31,11 @@
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
-    "build": "bun build ./src/index.ts ./src/jsx-runtime.ts ./src/jsx-dev-runtime.ts --outdir ./dist --target browser --minify --splitting",
+    "build": "tsdown",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "build:wasm": "v -prod -gc none -b wasm -d no_bounds_checking -d no_backtrace -d no_stdio -o dist/vsignal.wasm src/vsignal/signal.v && (wasm-opt -all -O4 --strip-debug dist/vsignal.wasm -o dist/vsignal.wasm || echo 'wasm-opt not found, skipping')",
-    "prepublishOnly": "bun run build:wasm && bun run build && bun run build:types",
-    "prepare": "bun run build:wasm && bun run build && bun run build:types",
+    "prepublishOnly": "bun run build:wasm && bun run build",
+    "prepare": "bun run build:wasm && bun run build",
     "prepack": "bun ./scripts/ensure-wasm.js",
     "check:wasm": "bun ./scripts/ensure-wasm.js",
     "test:wasm": "bun run scripts/check-wasm.ts"
@@ -54,6 +54,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "playwright": "^1.57.0",
+    "tsdown": "^0.20.0-beta.4",
     "typescript": "^5"
   }
 }

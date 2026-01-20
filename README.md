@@ -11,11 +11,11 @@ English | [日本語](./README.ja.md)
 
 **Vitrio is 3-4x faster than Solid/React** on interaction-heavy benchmarks:
 
-| Metric | Vitrio | SolidJS | React |
-|--------|--------|---------|-------|
-| Bundle Size | **11.6KB** | 13.0KB | 144.1KB |
-| 100 Clicks (ms) | **2.18** | 10.17 | 11.26 |
-| List Updates (ms) | **2.95** | 11.31 | 8.75 |
+| Metric            | Vitrio     | SolidJS | React   |
+| ----------------- | ---------- | ------- | ------- |
+| Bundle Size       | **11.9KB** | 13.0KB  | 144.1KB |
+| 100 Clicks (ms)   | **2.45**   | 11.02   | 11.74   |
+| List Updates (ms) | **3.47**   | 11.84   | 9.18    |
 
 > 📊 See [results.md](./results.md) and [docs/benchmarks.md](./docs/benchmarks.md) for full details.
 
@@ -25,7 +25,7 @@ English | [日本語](./README.ja.md)
 - ⚡ **Reactive** - Fine-grained updates with automatic dependency tracking
 - 🏎️ **Solid-style DOM** - Create once, update bindings (no VDOM diffing)
 - 🎨 **React-like TSX** - Write components naturally with JSX
-- 📦 **Tiny** - ~8KB minified
+- 📦 **Tiny** - ~12KB minified
 - 🧹 **Auto-cleanup** - Reactive bindings are disposed when nodes are removed
 - 🔧 **Bun-first** - Built for modern tooling
 
@@ -40,26 +40,26 @@ npm install @potetotown/vitrio
 ## Quick Start
 
 ```tsx
-import { v, derive, get, set, render } from '@potetotown/vitrio'
+import { v, derive, get, set, render } from "@potetotown/vitrio";
 
 // 1. Create reactive state
-const count = v(0)
-const doubled = derive(get => get(count) * 2)
+const count = v(0);
+const doubled = derive((get) => get(count) * 2);
 
 // 2. Write React-like components
 function Counter() {
   return (
     <div>
-      <button onClick={() => set(count, c => c - 1)}>-</button>
+      <button onClick={() => set(count, (c) => c - 1)}>-</button>
       <span>{() => get(count)}</span>
       <span style="color: gray">(×2 = {() => get(doubled)})</span>
-      <button onClick={() => set(count, c => c + 1)}>+</button>
+      <button onClick={() => set(count, (c) => c + 1)}>+</button>
     </div>
-  )
+  );
 }
 
 // 3. Render
-render(<Counter />, document.getElementById('app'))
+render(<Counter />, document.getElementById("app"));
 ```
 
 ## Core Concepts
@@ -69,9 +69,9 @@ render(<Counter />, document.getElementById('app'))
 Create reactive values:
 
 ```tsx
-const name = v('John')
-const age = v(25)
-const user = v({ id: 1, role: 'admin' })
+const name = v("John");
+const age = v(25);
+const user = v({ id: 1, role: "admin" });
 ```
 
 ### Derived State with `derive()`
@@ -79,20 +79,20 @@ const user = v({ id: 1, role: 'admin' })
 Computed values that auto-update:
 
 ```tsx
-const count = v(10)
-const doubled = derive(get => get(count) * 2)     // 20
-const message = derive(get => `Count: ${get(count)}`)
+const count = v(10);
+const doubled = derive((get) => get(count) * 2); // 20
+const message = derive((get) => `Count: ${get(count)}`);
 ```
 
 ### Reading & Writing
 
 ```tsx
 // Read
-const currentCount = get(count)
+const currentCount = get(count);
 
 // Write
-set(count, 5)                    // Direct value
-set(count, c => c + 1)           // Updater function
+set(count, 5); // Direct value
+set(count, (c) => c + 1); // Updater function
 ```
 
 ### Reactive Text Nodes
@@ -100,7 +100,7 @@ set(count, c => c + 1)           // Updater function
 Use functions in JSX for auto-updating text:
 
 ```tsx
-<span>{() => get(count)}</span>  // Re-renders when count changes
+<span>{() => get(count)}</span> // Re-renders when count changes
 ```
 
 ### Reactive Attributes
@@ -115,15 +115,15 @@ Attributes can also be reactive functions:
 
 ## API Reference
 
-| API | Description |
-|-----|-------------|
-| `v(initial)` | Create reactive atom |
-| `derive(fn)` | Create computed value |
-| `get(atom)` | Read current value |
-| `set(atom, value)` | Update value |
-| `subscribe(atom, fn)` | Listen to changes |
-| `use(atom)` | Hook: `[value, setter]` |
-| `render(jsx, container)` | Mount to DOM |
+| API                      | Description             |
+| ------------------------ | ----------------------- |
+| `v(initial)`             | Create reactive atom    |
+| `derive(fn)`             | Create computed value   |
+| `get(atom)`              | Read current value      |
+| `set(atom, value)`       | Update value            |
+| `subscribe(atom, fn)`    | Listen to changes       |
+| `use(atom)`              | Hook: `[value, setter]` |
+| `render(jsx, container)` | Mount to DOM            |
 
 ## Control Flow
 
@@ -172,13 +172,13 @@ See [examples/counter](./examples/counter) for a complete demo.
 
 ## Comparison
 
-| Feature | Vitrio | React | Solid | Jotai |
-|---------|--------|-------|-------|-------|
-| Bundle size | ~8KB | ~40KB | ~13KB | ~3KB |
-| No virtual DOM | ✅ | ❌ | ✅ | - |
-| Fine-grained | ✅ | ❌ | ✅ | ✅ |
-| TSX support | ✅ | ✅ | ✅ | ✅ |
-| 100-click speed | 🥇 | 🥉 | 🥈 | - |
+| Feature         | Vitrio | React | Solid | Jotai |
+| --------------- | ------ | ----- | ----- | ----- |
+| Bundle size     | ~12KB  | ~40KB | ~13KB | ~3KB  |
+| No virtual DOM  | ✅     | ❌    | ✅    | -     |
+| Fine-grained    | ✅     | ❌    | ✅    | ✅    |
+| TSX support     | ✅     | ✅    | ✅    | ✅    |
+| 100-click speed | 🥇     | 🥉    | 🥈    | -     |
 
 ## License
 
