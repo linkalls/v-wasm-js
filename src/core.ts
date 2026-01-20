@@ -3,6 +3,9 @@
  * Inspired by Jotai's simplicity, powered by V WASM
  */
 
+// @rollup/plugin-wasm will inline this as base64
+import initVsignal from "./vsignal.wasm";
+
 // === Types ===
 type Getter = <T>(atom: VAtom<T>) => T;
 type Setter = <T>(atom: VAtom<T>, value: T | ((prev: T) => T)) => void;
@@ -130,15 +133,14 @@ export async function initWasm(
         | null = null;
 
       if (opts.module) {
+        // Option 1: Pre-compiled module provided
         const module = await opts.module;
         instantiated = await measure("compile", () =>
           WebAssembly.instantiate(module, imports),
         );
-      } else {
-        const url =
-          opts.wasmPath ||
-          new URL("../dist/vsignal.wasm", import.meta.url).href;
-        const response = await measure("fetch", () => fetch(url));
+      } else if (opts.wasmPath) {
+        // Option 2: Custom WASM path provided (legacy/override)
+        const response = await measure("fetch", () => fetch(opts.wasmPath!));
 
         if (!response.ok) {
           console.error(
@@ -163,6 +165,10 @@ export async function initWasm(
             WebAssembly.instantiate(bytes, imports),
           );
         }
+      } else {
+        // Option 3: Use bundled WASM via @rollup/plugin-wasm (default)
+        const instance = await measure("compile", () => initVsignal(imports));
+        instantiated = instance;
       }
 
       if (!instantiated) {

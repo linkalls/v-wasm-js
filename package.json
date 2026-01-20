@@ -1,6 +1,6 @@
 {
   "name": "@potetotown/vitrio",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Ultra-minimal reactive UI framework with derive() API",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
@@ -26,14 +26,13 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "./dist/vsignal.wasm"
+    "README.md"
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
     "build": "tsdown",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
-    "build:wasm": "v -prod -gc none -b wasm -d no_bounds_checking -d no_backtrace -d no_stdio -o dist/vsignal.wasm src/vsignal/signal.v && (wasm-opt -all -O4 --strip-debug dist/vsignal.wasm -o dist/vsignal.wasm || echo 'wasm-opt not found, skipping')",
+    "build:wasm": "v -prod -gc none -b wasm -d no_bounds_checking -d no_backtrace -d no_stdio -o src/vsignal.wasm src/vsignal/signal.v && (wasm-opt -all -O4 --strip-debug src/vsignal.wasm -o src/vsignal.wasm || echo 'wasm-opt not found, skipping')",
     "prepublishOnly": "bun run build:wasm && bun run build",
     "prepare": "bun run build:wasm && bun run build",
     "prepack": "bun ./scripts/ensure-wasm.js",
@@ -52,6 +51,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-wasm": "^6.2.2",
     "@types/bun": "latest",
     "playwright": "^1.57.0",
     "tsdown": "^0.20.0-beta.4",

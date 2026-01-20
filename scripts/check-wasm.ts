@@ -1,21 +1,27 @@
-
-import { wasmBase64 } from '../src/generated-wasm';
+import { WASM_BINARY_BASE64 } from "../src/wasm-binary";
 
 async function check() {
   console.log("Checking WASM initialization...");
   try {
-    const bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(WASM_BINARY_BASE64), (c) =>
+      c.charCodeAt(0),
+    );
 
     const imports = {
       wasi_snapshot_preview1: {
-        fd_write: (fd: number, iovs: number, iovs_len: number, nwritten: number) => {
-            console.log("fd_write called", fd);
-            return 0;
+        fd_write: (
+          fd: number,
+          iovs: number,
+          iovs_len: number,
+          nwritten: number,
+        ) => {
+          console.log("fd_write called", fd);
+          return 0;
         },
         proc_exit: (code: number) => {
-            console.log("proc_exit called", code);
+          console.log("proc_exit called", code);
         },
-      }
+      },
     };
 
     const result = await WebAssembly.instantiate(bytes, imports);
@@ -33,34 +39,35 @@ async function check() {
     const currentBytes = exports.memory.buffer.byteLength;
     const neededPages = Math.ceil((REQUIRED_BYTES - currentBytes) / PAGE_SIZE);
 
-    console.log(`Smart Grow Check: Current=${currentBytes}, Required=${REQUIRED_BYTES}, NeededPages=${neededPages}`);
+    console.log(
+      `Smart Grow Check: Current=${currentBytes}, Required=${REQUIRED_BYTES}, NeededPages=${neededPages}`,
+    );
 
     if (neededPages > 0) {
-        console.log(`Growing memory by ${neededPages} pages...`);
-        try {
-            exports.memory.grow(neededPages);
-            console.log("New memory size:", exports.memory.buffer.byteLength);
-        } catch (e) {
-            console.log("Failed to grow memory:", e);
-        }
+      console.log(`Growing memory by ${neededPages} pages...`);
+      try {
+        exports.memory.grow(neededPages);
+        console.log("New memory size:", exports.memory.buffer.byteLength);
+      } catch (e) {
+        console.log("Failed to grow memory:", e);
+      }
     } else {
-        console.log("Memory is sufficient. No growth needed.");
+      console.log("Memory is sufficient. No growth needed.");
     }
 
     if (exports._start) {
-        console.log("Calling _start...");
-        exports._start();
-        console.log("_start completed.");
+      console.log("Calling _start...");
+      exports._start();
+      console.log("_start completed.");
     }
 
     if (exports.init_graph) {
-        console.log("Calling init_graph...");
-        const g = exports.init_graph();
-        console.log("init_graph returned:", g);
+      console.log("Calling init_graph...");
+      const g = exports.init_graph();
+      console.log("init_graph returned:", g);
     }
 
     console.log("SUCCESS");
-
   } catch (e) {
     console.error("FAILED:", e);
     process.exit(1);

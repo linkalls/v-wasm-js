@@ -1,4 +1,5 @@
 import { defineConfig } from "tsdown";
+import { wasm } from "@rollup/plugin-wasm";
 
 export default defineConfig({
   entry: ["./src/index.ts", "./src/jsx-runtime.ts", "./src/jsx-dev-runtime.ts"],
@@ -9,5 +10,9 @@ export default defineConfig({
   format: "esm",
   dts: true,
   // Don't clean to preserve WASM file (build:wasm runs first)
-  clean: false,
+  clean: true,
+  plugins: [
+    // Inline WASM as base64 (handles files up to 10MB)
+    wasm({ maxFileSize: 10000000 }),
+  ],
 });
