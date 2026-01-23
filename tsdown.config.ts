@@ -9,10 +9,12 @@ export default defineConfig({
   target: "es2022",
   format: "esm",
   dts: true,
-  // Don't clean to preserve WASM file (build:wasm runs first)
   clean: true,
+  // Explicitly target browser to avoid bundling Node.js built-ins
+  platform: "browser",
   plugins: [
-    // Inline WASM as base64 (handles files up to 10MB)
     wasm({ maxFileSize: 10000000 }),
   ],
+  // Ensure Node.js modules are excluded from the bundle
+  external: ["node:module", "fs", "path"],
 });
