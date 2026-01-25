@@ -242,7 +242,12 @@ const idToAtomArray: VAtom<any>[] = [];
 const fastGet: Getter = (a) =>
   a._state ? a._state.value : getAtomState(a).value;
 
-// Even faster getter that assumes state is initialized (for WASM path)
+/**
+ * Ultra-fast getter for use ONLY in WASM propagation path.
+ * Assumes atom state is already initialized (guaranteed by WASM graph).
+ * Skips the existence check for maximum performance in hot path.
+ * DO NOT use outside of updateDerivedWasm function.
+ */
 const ultraFastGet: Getter = (a) => a._state!.value;
 
 function trackSubscriber<T>(state: VAtomState<T>, atom: VAtom<T>): void {

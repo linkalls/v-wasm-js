@@ -72,9 +72,9 @@ export function Show(props: {
       if (props.fallback && !showingFallback) {
         const fallback = getFallback();
         if (fallback instanceof Node) {
-          // Optimization: Only clone if fallback has children or reactive bindings
+          // Optimization: Only clone if fallback has children or is a fragment
           const needsClone = 
-            fallback instanceof Element && fallback.childNodes.length > 0 ||
+            (fallback instanceof Element && fallback.childNodes.length > 0) ||
             fallback instanceof DocumentFragment;
           currentNode = needsClone ? fallback.cloneNode(true) : fallback;
           parent?.insertBefore(currentNode, marker.nextSibling);
