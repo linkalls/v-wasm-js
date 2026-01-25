@@ -11,13 +11,6 @@ English | [日本語](./README.ja.md)
 
 **Benchmark snapshot (2026-01-17):**
 
-<<<<<<< HEAD
-| Metric            | Vitrio     | SolidJS | React   |
-| ----------------- | ---------- | ------- | ------- |
-| Bundle Size       | **11.9KB** | 13.0KB  | 144.1KB |
-| 100 Clicks (ms)   | **2.45**   | 11.02   | 11.74   |
-| List Updates (ms) | **3.47**   | 11.84   | 9.18    |
-=======
 | Metric | Vitrio (WASM) | SolidJS | React |
 |--------|---------------|---------|-------|
 | Bundle Size (bytes) | 11881 | 12970 | 144132 |
@@ -27,7 +20,6 @@ English | [日本語](./README.ja.md)
 
 - **Counter (100 clicks):** 366.5% faster than Solid, 416.6% faster than React.
 - **List updates:** 283.9% faster than Solid.
->>>>>>> 0f2cf63d327bb2a7fd2cd1d9fd0bbe2744bfd172
 
 > 📊 See [results.md](./results.md) and [docs/benchmarks.md](./docs/benchmarks.md) for full details.
 

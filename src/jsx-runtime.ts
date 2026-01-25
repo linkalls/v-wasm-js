@@ -46,12 +46,16 @@ export function cleanupNode(node: Node): void {
       | CleanupFn[]
       | undefined;
     if (cleanups) {
-      for (let i = 0, len = cleanups.length; i < len; i++) cleanups[i]();
+      // Direct loop for better performance
+      const len = cleanups.length;
+      for (let i = 0; i < len; i++) cleanups[i]();
       (current as any)[CLEANUP_SYMBOL] = undefined;
     }
     if (current instanceof Element || current instanceof DocumentFragment) {
       const children = current.childNodes;
-      for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+      // Push children directly to stack
+      const childLen = children.length;
+      for (let i = 0; i < childLen; i++) stack.push(children[i]);
     }
   }
 }
@@ -109,8 +113,10 @@ function createElement(type: string | Component, props: Props | null): VNode {
 
   // Apply props with reactive binding support
   if (props) {
-    for (const key in props) {
-      if (!Object.prototype.hasOwnProperty.call(props, key)) continue;
+    // Optimization: Use Object.keys for faster iteration
+    const keys = Object.keys(props);
+    for (let i = 0, len = keys.length; i < len; i++) {
+      const key = keys[i];
       if (key === "children") continue;
 
       const value = props[key];
