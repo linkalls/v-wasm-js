@@ -37,14 +37,25 @@ const componentDeps = new WeakMap<Subscriber, DependencySet>();
 // === Batching ===
 const pendingSubscribers = new Set<Subscriber>();
 let flushPending = false;
+// Pre-allocated array to avoid creating new arrays in flush
+let flushBuffer: Subscriber[] = [];
 
 function flush() {
   flushPending = false;
-  const copy = Array.from(pendingSubscribers);
+  const size = pendingSubscribers.size;
+  // Reuse buffer if capacity is sufficient
+  if (flushBuffer.length < size) {
+    flushBuffer = new Array(size);
+  }
+  // Copy to array for stable iteration
+  let i = 0;
+  for (const sub of pendingSubscribers) {
+    flushBuffer[i++] = sub;
+  }
   pendingSubscribers.clear();
-  const len = copy.length;
-  for (let i = 0; i < len; i++) {
-    withRenderContext(copy[i]);
+  // Execute subscribers
+  for (let j = 0; j < i; j++) {
+    withRenderContext(flushBuffer[j]);
   }
 }
 
@@ -227,8 +238,12 @@ export async function initWasm(
 // Optimization B: Array for ID lookup
 const idToAtomArray: VAtom<any>[] = [];
 
+// Optimized getter for derived atom evaluation (no subscription tracking)
 const fastGet: Getter = (a) =>
   a._state ? a._state.value : getAtomState(a).value;
+
+// Even faster getter that assumes state is initialized (for WASM path)
+const ultraFastGet: Getter = (a) => a._state!.value;
 
 function trackSubscriber<T>(state: VAtomState<T>, atom: VAtom<T>): void {
   if (currentComponent) {
@@ -425,10 +440,8 @@ function updateDerivedWasm(source: VAtom<any>): void {
         // Optimization A: Direct access
         const state = atom._state!;
 
-        // Re-evaluate
-        // Note: For extreme speed, we might want to optimize the `read` function's `get` arg too
-        // but `getAtomState` is now fast.
-        const newValue = atom.read(fastGet);
+        // Re-evaluate with ultraFastGet since all atoms in WASM path are initialized
+        const newValue = atom.read(ultraFastGet);
 
         if (state.value !== newValue) {
           state.value = newValue;

@@ -72,7 +72,11 @@ export function Show(props: {
       if (props.fallback && !showingFallback) {
         const fallback = getFallback();
         if (fallback instanceof Node) {
-          currentNode = fallback.cloneNode(true);
+          // Optimization: Only clone if fallback has children or reactive bindings
+          const needsClone = 
+            fallback instanceof Element && fallback.childNodes.length > 0 ||
+            fallback instanceof DocumentFragment;
+          currentNode = needsClone ? fallback.cloneNode(true) : fallback;
           parent?.insertBefore(currentNode, marker.nextSibling);
           showingFallback = true;
         }
@@ -137,6 +141,11 @@ export function For<T>(props: {
     const items = resolve(props.each);
     const targetParent: Node = marker.parentNode || frag;
     const len = items.length;
+    const prevLen = currentKeys.length;
+
+    // Fast path: empty to empty (no-op)
+    if (len === 0 && prevLen === 0) return;
+
     // Pre-allocate array with exact size
     const newKeys: Key[] = new Array(len);
     // Inline key generation for speed
@@ -147,9 +156,9 @@ export function For<T>(props: {
     }
 
     // Fast path: pure append when prefix is unchanged
-    if (currentKeys.length > 0 && len >= currentKeys.length) {
+    if (prevLen > 0 && len >= prevLen) {
       let isPrefix = true;
-      for (let i = 0; i < currentKeys.length; i++) {
+      for (let i = 0; i < prevLen; i++) {
         if (currentKeys[i] !== newKeys[i]) {
           isPrefix = false;
           break;
@@ -157,11 +166,11 @@ export function For<T>(props: {
       }
 
       if (isPrefix) {
-        let prevNode = currentKeys.length
-          ? nodeMap.get(currentKeys[currentKeys.length - 1])?.node || marker
+        let prevNode = prevLen
+          ? nodeMap.get(currentKeys[prevLen - 1])?.node || marker
           : marker;
 
-        for (let i = currentKeys.length; i < len; i++) {
+        for (let i = prevLen; i < len; i++) {
           const key = newKeys[i];
           const indexRef = { value: i };
           const indexFn = () => indexRef.value;
@@ -186,9 +195,9 @@ export function For<T>(props: {
     }
 
     // Fast path: shrink only (no reorders), keep stable order while removing missing nodes
-    if (currentKeys.length > 0 && len <= currentKeys.length) {
+    if (prevLen > 0 && len <= prevLen) {
       let nextIdx = 0;
-      for (let i = 0; i < currentKeys.length && nextIdx < len; i++) {
+      for (let i = 0; i < prevLen && nextIdx < len; i++) {
         if (currentKeys[i] === newKeys[nextIdx]) {
           nextIdx++;
         }
