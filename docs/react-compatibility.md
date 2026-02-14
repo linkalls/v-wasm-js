@@ -34,7 +34,7 @@
 {isVisible && <Modal />}
 
 // Vitrio
-<Show when={isVisible}>
+<Show when={() => get(isVisible)}>
   <Modal />
 </Show>
 ```
