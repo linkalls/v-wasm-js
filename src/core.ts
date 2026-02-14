@@ -548,6 +548,31 @@ export function withRenderContext(component: () => void): void {
 
   try {
     component();
+  } catch (err: any) {
+    // 1. Check for Suspense (Promise)
+    if (err && typeof err.then === "function") {
+      const suspenseContext =
+        globalContext && globalContext[Symbol.for("vitrio.suspense") as any];
+      if (suspenseContext) {
+        suspenseContext.increment();
+        err.then(
+          () => suspenseContext.decrement(),
+          () => suspenseContext.decrement(),
+        );
+        return; // Suppress error
+      }
+    }
+
+    // 2. Check for Error Boundary
+    const errorContext =
+      globalContext && globalContext[Symbol.for("vitrio.error") as any];
+    if (errorContext) {
+      errorContext.handleError(err);
+      return; // Suppress error
+    }
+
+    // 3. Uncaught
+    throw err;
   } finally {
     currentComponent = prevComponent;
     currentDeps = prevDeps;

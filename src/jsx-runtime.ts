@@ -153,7 +153,11 @@ function createElement(type: string | Component, props: Props | null): VNode {
         const event = key.slice(2).toLowerCase();
         el.addEventListener(event, value);
       } else if (key === "ref") {
-        value(el);
+        if (typeof value === "function") {
+          value(el);
+        } else if (value && typeof value === "object" && "current" in value) {
+          value.current = el;
+        }
       } else if (typeof value === "function") {
         // Reactive binding - subscribe to changes
         const updateProp = () => {
@@ -233,16 +237,55 @@ export function resolve(child: any): Node | null {
 
   // Reactive Function (Text Binding or Dynamic Component)
   if (typeof child === 'function') {
-    const textNode = document.createTextNode("");
+    const marker = document.createComment("t");
+    let currentNodes: Node[] = [];
+
     const update = () => {
       const result = child();
-      // If result is non-primitive (Node/Descriptor), we fall back to string
-      // Users should use Show/Match for swapping Nodes
-      textNode.textContent = String(result ?? "");
+      const newNode = resolve(result);
+
+      // Normalize to array for consistent handling
+      let newNodes: Node[] = [];
+      if (newNode instanceof DocumentFragment) {
+        newNodes = Array.from(newNode.childNodes);
+      } else if (newNode) {
+        newNodes = [newNode];
+      }
+
+      const parent = marker.parentNode;
+
+      if (!parent) {
+        // Initial run: just capture nodes
+        currentNodes = newNodes;
+      } else {
+        // Update run: replace old nodes with new nodes
+
+        // Remove old nodes
+        for (const n of currentNodes) {
+           cleanupNode(n);
+           if (n.parentNode === parent) parent.removeChild(n);
+        }
+
+        // Insert new nodes
+        let prev = marker;
+        for (const n of newNodes) {
+           parent.insertBefore(n, prev.nextSibling);
+           prev = n;
+        }
+        currentNodes = newNodes;
+      }
     };
+
     withRenderContext(update);
-    registerCleanup(textNode, () => disposeEffect(update));
-    return textNode;
+    registerCleanup(marker, () => disposeEffect(update));
+
+    // Return Fragment containing marker and initial nodes
+    const frag = document.createDocumentFragment();
+    frag.appendChild(marker);
+    for (const n of currentNodes) {
+      frag.appendChild(n);
+    }
+    return frag as unknown as Node; // Casting to Node to satisfy return type, though Fragment is a Node
   }
 
   // String/Number
