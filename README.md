@@ -164,6 +164,9 @@ import { Show, For } from '@potetotown/vitrio'
 - [Router](./docs/router.md)
 - [Resource](./docs/resource.md)
 - [Benchmarks](./docs/benchmarks.md)
+- [React Compatibility](./docs/react-compatibility.md)
+- [Capabilities](./docs/capabilities.md)
+- [Optimization](./docs/optimization.md)
 
 ## Examples & Development
 

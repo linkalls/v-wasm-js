@@ -1,14 +1,14 @@
 # Getting Started
 
-Let's start building reactive UIs with Vitrio.
+Vitrioを使ったリアクティブUIの構築を始めましょう。
 
-## Installation
+## インストール
 
 ```bash
 bun add @potetotown/vitrio
 ```
 
-## Project Setup
+## プロジェクトセットアップ
 
 ### 1. tsconfig.json
 
@@ -42,11 +42,11 @@ bun add @potetotown/vitrio
 ```tsx
 import { v, derive, get, set, render } from '@potetotown/vitrio'
 
-// Define state
+// 状態定義
 const count = v(0)
 const doubled = derive(get => get(count) * 2)
 
-// Component
+// コンポーネント
 function App() {
   return (
     <div>
@@ -60,18 +60,18 @@ function App() {
   )
 }
 
-// Mount
+// マウント
 render(<App />, document.getElementById('app'))
 ```
 
-## Development Server
+## 開発サーバー
 
 ```bash
 bun --hot main.tsx
 ```
 
-## Next Steps
+## 次のステップ
 
-- [Core API](./api.md) - Detailed API reference
-- [JSX & Components](./jsx.md) - How to write components
-- [Control Flow](./control-flow.md) - Conditionals and Lists
+- [Core API](./api.md) - 詳細なAPI解説
+- [JSX & Components](./jsx.md) - コンポーネントの書き方
+- [Control Flow](./control-flow.md) - 条件分岐とリスト

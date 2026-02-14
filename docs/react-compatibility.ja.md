@@ -1,23 +1,23 @@
-# React Compatibility Guide
+# Reactとの互換性ガイド
 
-## Migration Path: Guide from React
+## Migration Path: React からの移行ガイド
 
-### ✅ Immediately Usable Features (High Compatibility)
+### ✅ すぐに使える機能（互換性高い）
 
-**Basic JSX Syntax**
+**基本的なJSX構文**
 ```tsx
 // React
 <div className="container" onClick={handleClick}>
   {count}
 </div>
 
-// Vitrio (Almost the same!)
+// Vitrio（ほぼ同じ！）
 <div class="container" onClick={handleClick}>
   {() => get(count)}
 </div>
 ```
 
-**List Rendering**
+**リスト描画**
 ```tsx
 // React
 {items.map(item => <Item key={item.id} {...item} />)}
@@ -28,7 +28,7 @@
 </For>
 ```
 
-**Conditional Rendering**
+**条件分岐**
 ```tsx
 // React
 {isVisible && <Modal />}
@@ -39,36 +39,36 @@
 </Show>
 ```
 
-### ⚠️ Differences to Note
+### ⚠️ 注意が必要な違い
 
-**1. State Management Philosophy is Different**
-- React: Use `useState` inside components
-- Vitrio: Create **Global Atoms** (Jotai style)
+**1. 状態管理の思想が違う**
+- React: コンポーネント内で `useState` を使う
+- Vitrio: **グローバルなAtom** を作る（Jotaiスタイル）
 
 ```tsx
-// React (Component holds state)
+// React（コンポーネントごとに状態を持つ）
 function Counter() {
   const [count, setCount] = useState(0);
   return <button onClick={() => setCount(c => c + 1)}>{count}</button>;
 }
 
-// Vitrio (Atom is defined outside)
+// Vitrio（Atomは外で定義）
 const count = v(0);
 function Counter() {
   return <button onClick={() => set(count, c => c + 1)}>{() => get(count)}</button>;
 }
 ```
 
-**2. Reactive Expressions Must be Wrapped in Functions**
+**2. リアクティブ式は関数で包む必要がある**
 ```tsx
-// ❌ This won't work (initial render only)
+// ❌ これは動かない（初回描画のみ）
 <span>{get(count)}</span>
 
-// ✅ Function wrapper enables tracking
+// ✅ 関数にすると追跡される
 <span>{() => get(count)}</span>
 ```
 
-**3. `createEffect` Instead of `useEffect`**
+**3. `useEffect` の代わりに `createEffect`**
 ```tsx
 // React
 useEffect(() => {
@@ -81,12 +81,12 @@ createEffect(() => {
 });
 ```
 
-### 🔧 Example Implementation of Gradual Migration
+### 🔧 段階的移行の実装例
 
-**Strategy: Embed Vitrio into Part of a React App**
+**戦略: Reactアプリの一部にVitrioを埋め込む**
 
 ```tsx
-// main.tsx (React side)
+// main.tsx (React側)
 import { createRoot } from 'react-dom/client';
 import { VitrioIsland } from './VitrioIsland';
 
@@ -94,7 +94,7 @@ function App() {
   return (
     <div>
       <h1>My React App</h1>
-      {/* Vitrio here only */}
+      {/* ここだけVitrio */}
       <VitrioIsland />
     </div>
   );
@@ -133,4 +133,4 @@ export function VitrioIsland() {
 }
 ```
 
-With this pattern, you can **"Replace only the parts that need speed with Vitrio!"**
+このパターンで、**「速度が必要な部分だけVitrioに置き換える」** ことができるのだ！

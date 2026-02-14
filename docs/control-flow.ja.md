@@ -1,8 +1,8 @@
 # Control Flow
 
-Conditional rendering and list rendering.
+条件分岐とリストレンダリング。
 
-## Show - Conditional Rendering
+## Show - 条件付きレンダリング
 
 ```tsx
 import { Show } from '@potetotown/vitrio'
@@ -22,13 +22,13 @@ function App() {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `when` | `boolean \| () => boolean` | Condition to display |
-| `children` | `VNode` | Displayed when condition is true |
-| `fallback` | `VNode` | Displayed when condition is false (optional) |
+| `when` | `boolean \| () => boolean` | 表示条件 |
+| `children` | `VNode` | 条件がtrueの時に表示 |
+| `fallback` | `VNode` | 条件がfalseの時に表示（オプション） |
 
 ---
 
-## For - List Rendering
+## For - リストレンダリング
 
 ```tsx
 import { For } from 'vitrio'
@@ -50,15 +50,15 @@ function FruitList() {
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `each` | `T[] \| () => T[]` | Array data |
-| `children` | `(item: T, index: number) => VNode` | Render function for each item |
-| `key` | `(item: T, index: number) => string \| number` | Optional: Used for keyed diffing |
+| `each` | `T[] \| () => T[]` | 配列データ |
+| `children` | `(item: T, index: number) => VNode` | 各要素のレンダー関数 |
+| `key` | `(item: T, index: number) => string \| number` | 任意: キー付き差分に利用 |
 
-> Note: `<For>` automatically disposes reactive bindings associated with removed nodes, preventing subscription buildup during list additions/removals.
+> Note: `<For>` は削除されたノードに紐づくリアクティブバインディングを自動で破棄するため、リストの追加・削除を繰り返しても購読が溜まりません。
 
 ---
 
-## Switch/Match - Pattern Matching
+## Switch/Match - パターンマッチング
 
 ```tsx
 import { Switch, Match } from 'vitrio'
@@ -84,9 +84,9 @@ function StatusView() {
 
 ---
 
-## Manual Conditional Rendering
+## 手動での条件分岐
 
-For simple cases, you can use conditional operators directly in JSX:
+シンプルなケースではJSX内で直接条件分岐もできます：
 
 ```tsx
 function App() {
@@ -100,7 +100,7 @@ function App() {
 
 ---
 
-## Manual List Rendering
+## 手動でのリスト
 
 ```tsx
 function TodoList() {

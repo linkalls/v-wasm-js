@@ -1,130 +1,130 @@
-# Vitrio 最適化ガイド
+# Vitrio Optimization Guide
 
-このドキュメントは、Vitrioフレームワークで実施した最適化とその効果について説明します。
+This document explains the optimizations implemented in the Vitrio framework and their effects.
 
-## 概要
+## Overview
 
-Vitrioは、V言語で書かれたWASMをJavaScriptにバンドルすることで、高速なリアクティブUIフレームワークを実現しています。
+Vitrio achieves a high-performance reactive UI framework by bundling WASM written in V into JavaScript.
 
-## 最適化の変更履歴
+## Optimization Changelog
 
-### 2026-01-15: For/Show コンポーネントの修正
+### 2026-01-15: For/Show Component Fixes
 
-#### 問題
+#### Issues
 
-- `<For>` と `<Show>` コンポーネントがJSXから渡される`children`を正しく処理できていなかった
-- JSXランタイムが`children`を配列として渡すため、関数として直接呼び出せなかった
-- リスト更新のベンチマークで項目が0個になっていた
+- `<For>` and `<Show>` components were not correctly processing `children` passed from JSX.
+- The JSX runtime passes `children` as an array, so they could not be called directly as functions.
+- List update benchmarks resulted in 0 items.
 
-#### 修正内容
+#### Fixes
 
-1. **flow.ts: For コンポーネント**
-   - `props.children` が配列の場合、最初の要素を `renderFn` として抽出
-   - フラグメントがDOMにマウントされる前でも正しくレンダリングするように修正
+1. **flow.ts: For Component**
+   - Extracted the first element as `renderFn` if `props.children` is an array.
+   - Fixed to render correctly even before the fragment is mounted to the DOM.
 
-2. **flow.ts: Show コンポーネント**
-   - 同様に `getChild()` と `getFallback()` ヘルパー関数を追加
-   - 配列からの要素抽出を適切に処理
+2. **flow.ts: Show Component**
+   - Similarly added `getChild()` and `getFallback()` helper functions.
+   - Properly handled element extraction from arrays.
 
-3. **jsx-runtime.ts: 型定義**
-   - `JSX.Element` を `VNode` 型として定義（DocumentFragment を含む）
-   - For/Show が有効なJSXコンポーネントとして認識されるように修正
+3. **jsx-runtime.ts: Type Definitions**
+   - Defined `JSX.Element` as `VNode` type (including DocumentFragment).
+   - Fixed For/Show to be recognized as valid JSX components.
 
-#### 結果
+#### Results
 
-| メトリクス       | 修正前 | 修正後    | 改善率      |
-| ---------------- | ------ | --------- | ----------- |
-| リスト更新       | 12.7ms | **5.9ms** | **53%高速** |
-| インタラクション | 11.9ms | **7.8ms** | **35%高速** |
-| Final list items | 0      | **50**    | ✓ 正常動作  |
+| Metrics | Before | After | Improvement |
+| ------- | ------ | ----- | ----------- |
+| List Update | 12.7ms | **5.9ms** | **53% Faster** |
+| Interaction | 11.9ms | **7.8ms** | **35% Faster** |
+| Final list items | 0 | **50** | ✓ Working |
 
 ---
 
-### 2026-01-15: WASMとJSのサイズ最適化
+### 2026-01-15: WASM and JS Size Optimization
 
-#### 変更内容
+#### Changes
 
-1. **V言語ビルドフラグの最適化** (`package.json`)
-   - `-d no_bounds_checking`: 配列の境界チェックを無効化
-   - `-d no_backtrace`: バックトレース生成を無効化
-   - `-d no_stdio`: 標準I/Oサポートを削除
-   - `wasm-opt --strip-debug`: デバッグ情報を削除
+1. **V Build Flags Optimization** (`package.json`)
+   - `-d no_bounds_checking`: Disable array bounds checking.
+   - `-d no_backtrace`: Disable backtrace generation.
+   - `-d no_stdio`: Remove standard I/O support.
+   - `wasm-opt --strip-debug`: Remove debug information.
 
-2. **`@[direct_array_access]` アトリビュートの追加** (`src/vsignal/signal.v`)
+2. **Added `@[direct_array_access]` Attribute** (`src/vsignal/signal.v`)
 
-3. **console.log/warn の削除** (`src/core.ts`)
+3. **Removed console.log/warn** (`src/core.ts`)
 
-#### 結果
+#### Results
 
-| コンポーネント   | 最適化前 | 最適化後 | 削減率      |
-| ---------------- | -------- | -------- | ----------- |
-| WASM バイナリ    | 3,901 B  | 1,511 B  | **61%削減** |
-| メインJSチャンク | 12,393 B | 10,261 B | **17%削減** |
+| Component | Before | After | Reduction |
+| --------- | ------ | ----- | --------- |
+| WASM Binary | 3,901 B | 1,511 B | **61% Reduction** |
+| Main JS Chunk | 12,393 B | 10,261 B | **17% Reduction** |
 
-### 2026-01-18: サブスクリプションのクリーンアップ
+### 2026-01-18: Subscription Cleanup
 
-#### 変更内容
+#### Changes
 
-- `<For>` / `<Show>` でノードを削除する際に、紐づくリアクティブバインディングを確実に破棄するように変更。
-- `render` もマウント前に既存ノードのクリーンアップを行い、再マウント時の残留サブスクを除去。
+- Modified `<For>` / `<Show>` to ensure reactive bindings associated with nodes are disposed when nodes are removed.
+- `render` also performs cleanup of existing nodes before mounting, removing residual subscriptions upon re-mount.
 
-#### 結果
+#### Results
 
-- リスト更新: **4.50ms → 2.95ms** (約34%高速化)
-- 100クリック: **2.68ms → 2.18ms** (約19%高速化)
+- List Update: **4.50ms → 2.95ms** (Approx. 34% faster)
+- 100 Clicks: **2.68ms → 2.18ms** (Approx. 19% faster)
 
-### 2026-01-20: コード品質最適化 (v0.1.7)
+### 2026-01-20: Code Quality Optimization (v0.1.7)
 
-#### 変更内容
+#### Changes
 
-1. **`forEach` → `for-of` への置換** (`core.ts`)
-   - `flush()`: スプレッド演算子を `Array.from()` に、`forEach` を `for-of` に変更
-   - `scheduleUpdates()`: `forEach` を `for-of` に変更
-   - `cleanupComponent()`: 同様に最適化
-   - `getAtomState()`: 依存関係登録ループを `for-of` に変更
-   - `updateDerived()`: スプレッド演算子と `forEach` を最適化
+1. **Replaced `forEach` with `for-of`** (`core.ts`)
+   - `flush()`: Changed spread operator to `Array.from()` and `forEach` to `for-of`.
+   - `scheduleUpdates()`: Changed `forEach` to `for-of`.
+   - `cleanupComponent()`: Similarly optimized.
+   - `getAtomState()`: Changed dependency registration loop to `for-of`.
+   - `updateDerived()`: Optimized spread operator and `forEach`.
 
-2. **`cleanupNode` の最適化** (`jsx-runtime.ts`)
-   - `forEach` を `for-of` + `Array.from()` に変更
+2. **`cleanupNode` Optimization** (`jsx-runtime.ts`)
+   - Changed `forEach` to `for-of` + `Array.from()`.
 
-3. **`Switch`/`Match` のリアクティブ化** (`flow.ts`)
-   - 初期描画時のみの条件評価から、シグナル変更時にも更新するように修正
-   - `withRenderContext` を使用してリアクティブに
-   - マーカーベースのDOM更新方式に統一
+3. **Reactivity for `Switch`/`Match`** (`flow.ts`)
+   - Fixed to update on signal changes instead of only evaluating condition on initial render.
+   - Used `withRenderContext` to make it reactive.
+   - Unified to marker-based DOM update method.
 
-#### 結果
+#### Results
 
-- 機能改善: Switch/Matchが正しくリアクティブに動作
-- コード品質: 一貫した for-of ループの使用
-- 性能維持: SolidJS比で 349%高速を維持
+- Functional improvement: Switch/Match now works reactively correctly.
+- Code quality: Consistent use of for-of loops.
+- Performance maintenance: Maintained 349% speed advantage over SolidJS.
 
-## ベンチマーク結果 (最新: 2026-01-20)
+## Benchmark Results (Latest: 2026-01-20)
 
-| メトリクス                         | Vitrio     | SolidJS | React   |
-| ---------------------------------- | ---------- | ------- | ------- |
-| バンドルサイズ                     | **11.9KB** | 13.0KB  | 144.1KB |
-| ロード時間 (ms)                    | **14.05**  | 41.26   | 36.26   |
-| インタラクション (100 clicks, ms)  | **2.45**   | 11.02   | 11.74   |
-| リスト更新 (50 add, 25 remove, ms) | **3.47**   | 11.84   | 9.18    |
+| Metrics | Vitrio | SolidJS | React |
+| ------- | ------ | ------- | ----- |
+| Bundle Size | **11.9KB** | 13.0KB | 144.1KB |
+| Load Time (ms) | **14.05** | 41.26 | 36.26 |
+| Interaction (100 clicks, ms) | **2.45** | 11.02 | 11.74 |
+| List Update (50 add, 25 remove, ms) | **3.47** | 11.84 | 9.18 |
 
-### 分析
+### Analysis
 
-- **リスト更新**: VitrioはSolidより**241%高速**、Reactより**165%高速**
-- **インタラクション**: VitrioはSolidより**349%高速**、Reactより**379%高速**
-- **バンドルサイズ**: VitrioはSolidより約8%小さく、Reactより約92%小さい
+- **List Update**: Vitrio is **241% faster** than Solid, **165% faster** than React.
+- **Interaction**: Vitrio is **349% faster** than Solid, **379% faster** than React.
+- **Bundle Size**: Vitrio is about 8% smaller than Solid, about 92% smaller than React.
 
-## ビルドコマンド
+## Build Commands
 
 ```bash
-# WASMをビルド（最適化済み）
+# Build WASM (Optimized)
 bun run build:wasm
 
-# JSをビルド
+# Build JS
 bun run build
 
-# 型定義を生成
+# Generate Type Definitions
 bun run build:types
 
-# すべてをビルド
+# Build All
 bun run prepare
 ```
