@@ -33,6 +33,30 @@ interface VAtomState<T> {
 let currentComponent: (() => void) | null = null;
 let currentDeps: DependencySet | null = null;
 const componentDeps = new WeakMap<Subscriber, DependencySet>();
+const componentCleanups = new WeakMap<Subscriber, Set<() => void>>();
+const componentContexts = new WeakMap<Subscriber, Record<symbol, any> | null>();
+const componentChildren = new WeakMap<Subscriber, Set<Subscriber>>();
+
+// === Context ===
+let globalContext: Record<symbol, any> | null = null;
+
+export function getContext(id: symbol): any {
+  return globalContext ? globalContext[id as any] : undefined;
+}
+
+export function runWithContext<T>(context: Record<symbol, any> | null, fn: () => T): T {
+  const prev = globalContext;
+  globalContext = context;
+  try {
+    return fn();
+  } finally {
+    globalContext = prev;
+  }
+}
+
+export function getGlobalContext() {
+  return globalContext;
+}
 
 // === Batching ===
 const pendingSubscribers = new Set<Subscriber>();
@@ -260,6 +284,23 @@ function trackSubscriber<T>(state: VAtomState<T>, atom: VAtom<T>): void {
 }
 
 function cleanupComponent(component: Subscriber): void {
+  // 1. Cleanup children (effects created inside)
+  const children = componentChildren.get(component);
+  if (children) {
+    for (const child of children) {
+      cleanupComponent(child); // Recursive cleanup
+    }
+    componentChildren.delete(component);
+  }
+
+  // 2. Run cleanups (onCleanup hooks)
+  const cleanups = componentCleanups.get(component);
+  if (cleanups) {
+    for (const cleanup of cleanups) cleanup();
+    componentCleanups.delete(component);
+  }
+
+  // 3. Unsubscribe from dependencies
   const deps = componentDeps.get(component);
   if (!deps) return;
 
@@ -477,19 +518,84 @@ export function useSet<T>(
 }
 
 export function withRenderContext(component: () => void): void {
+  // Link to parent if exists (Lifecycle management)
+  if (currentComponent) {
+    let children = componentChildren.get(currentComponent);
+    if (!children) {
+      children = new Set();
+      componentChildren.set(currentComponent, children);
+    }
+    children.add(component);
+  }
+
   cleanupComponent(component);
   const deps: DependencySet = new Set();
   componentDeps.set(component, deps);
 
+  // Capture context if new subscriber
+  if (!componentContexts.has(component)) {
+    componentContexts.set(component, globalContext);
+  }
+  const ctx = componentContexts.get(component) || null;
+
   const prevComponent = currentComponent;
   const prevDeps = currentDeps;
+  const prevContext = globalContext;
+
   currentComponent = component;
   currentDeps = deps;
+  globalContext = ctx;
+
   try {
     component();
   } finally {
     currentComponent = prevComponent;
     currentDeps = prevDeps;
+    globalContext = prevContext;
+  }
+}
+
+export function untrack<T>(fn: () => T): T {
+  const prev = currentComponent;
+  currentComponent = null;
+  try {
+    return fn();
+  } finally {
+    currentComponent = prev;
+  }
+}
+
+export function onCleanup(fn: () => void): void {
+  if (currentComponent) {
+    let cleanups = componentCleanups.get(currentComponent);
+    if (!cleanups) {
+      cleanups = new Set();
+      componentCleanups.set(currentComponent, cleanups);
+    }
+    cleanups.add(fn);
+  }
+}
+
+export function createEffect(fn: () => void | (() => void)): void {
+  const effect = () => {
+    const cleanup = fn();
+    if (typeof cleanup === "function") {
+      onCleanup(cleanup);
+    }
+  };
+  withRenderContext(effect);
+}
+
+export function createRoot<T>(fn: (dispose: () => void) => T): T {
+  const owner: Subscriber = () => {}; // Dummy owner
+  const dispose = () => disposeEffect(owner);
+
+  const prev = currentComponent;
+  currentComponent = owner;
+  try {
+    return fn(dispose);
+  } finally {
+    currentComponent = prev;
   }
 }
 
