@@ -1,4 +1,5 @@
 import { getContext, runWithContext, getGlobalContext } from "./core";
+import { resolve } from "./jsx-runtime";
 
 export interface Context<T> {
   id: symbol;
@@ -17,9 +18,9 @@ export function createContext<T>(defaultValue: T): Context<T> {
     newContext[id] = props.value;
 
     return runWithContext(newContext, () => {
-      const children = props.children;
-      // Resolve children if function
-      return typeof children === "function" ? children() : children;
+      // Resolve children while context is active
+      // This allows components passed as children to execute useContext inside their body
+      return resolve(props.children);
     });
   };
 

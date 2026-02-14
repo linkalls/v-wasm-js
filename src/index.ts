@@ -18,7 +18,8 @@ export {
   withRenderContext,
   onCleanup,
   createEffect,
-  untrack
+  untrack,
+  createRoot
 } from './core'
 export type { VAtom, InitWasmOptions } from './core'
 

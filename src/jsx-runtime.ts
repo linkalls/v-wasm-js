@@ -5,7 +5,13 @@
 
 import { disposeEffect, withRenderContext } from "./core";
 
-export type VNode = Element | Text | DocumentFragment;
+export type ComponentDescriptor = {
+  _brand: "component";
+  type: Component;
+  props: Props;
+};
+
+export type VNode = Element | Text | DocumentFragment | ComponentDescriptor;
 
 // Child types that can appear in JSX
 export type Child =
@@ -15,7 +21,7 @@ export type Child =
   | boolean
   | null
   | undefined
-  | (() => string | number);
+  | (() => string | number | VNode);
 export type Children = Child | Child[];
 
 export type Props = Record<string, any> & {
@@ -103,12 +109,16 @@ function createElement(type: string | Component, props: Props | null): VNode {
       : [props.children]
     : [];
 
-  // Handle function components
+  // Handle function components: Return Descriptor (Lazy Evaluation)
   if (typeof type === "function") {
-    return type({ ...props, children: allChildren });
+    return {
+      _brand: "component",
+      type,
+      props: { ...props, children: allChildren }
+    };
   }
 
-  // Create element
+  // Create element (Immediate Evaluation for Host Elements)
   const el = document.createElement(type);
 
   // Apply props with reactive binding support
@@ -184,31 +194,49 @@ function createElement(type: string | Component, props: Props | null): VNode {
   return el;
 }
 
+export function resolve(child: any): Node | null {
+  if (child == null || child === false || child === true) return null;
+
+  if (child instanceof Node) return child;
+
+  if (Array.isArray(child)) {
+    const frag = document.createDocumentFragment();
+    for (const c of child) {
+      const resolved = resolve(c);
+      if (resolved) frag.appendChild(resolved);
+    }
+    return frag;
+  }
+
+  // Component Descriptor -> Execute
+  if (typeof child === 'object' && child._brand === 'component') {
+    const res = child.type(child.props);
+    return resolve(res);
+  }
+
+  // Reactive Function (Text Binding or Dynamic Component)
+  if (typeof child === 'function') {
+    const textNode = document.createTextNode("");
+    const update = () => {
+      const result = child();
+      // If result is non-primitive (Node/Descriptor), we fall back to string
+      // Users should use Show/Match for swapping Nodes
+      textNode.textContent = String(result ?? "");
+    };
+    withRenderContext(update);
+    registerCleanup(textNode, () => disposeEffect(update));
+    return textNode;
+  }
+
+  // String/Number
+  return document.createTextNode(String(child));
+}
+
 function appendChildren(parent: Element, children: any[]): void {
   for (const child of children) {
-    if (child == null || child === false) continue;
-
-    if (typeof child === "function") {
-      // Reactive text node - subscribes to atoms used in the function
-      const textNode = document.createTextNode("");
-
-      // Create an update function that will be called when atoms change
-      const update = () => {
-        const result = child();
-        textNode.textContent = String(result ?? "");
-      };
-
-      // Initial render with subscription tracking
-      withRenderContext(update);
-      registerCleanup(textNode, () => disposeEffect(update));
-
-      parent.appendChild(textNode);
-    } else if (child instanceof Node) {
-      parent.appendChild(child);
-    } else if (Array.isArray(child)) {
-      appendChildren(parent, child);
-    } else {
-      parent.appendChild(document.createTextNode(String(child)));
+    const resolved = resolve(child);
+    if (resolved) {
+      parent.appendChild(resolved);
     }
   }
 }

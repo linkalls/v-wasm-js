@@ -3,12 +3,12 @@
  * Solid-style Show/For/Switch with marker-based DOM updates
  */
 
-import { cleanupNode, registerCleanup, type VNode } from "./jsx-runtime";
+import { cleanupNode, registerCleanup, resolve, type VNode } from "./jsx-runtime";
 import { disposeEffect, withRenderContext } from "./core";
 
 type MaybeReactive<T> = T | (() => T);
 
-function resolve<T>(value: MaybeReactive<T>): T {
+function resolveValue<T>(value: MaybeReactive<T>): T {
   return typeof value === "function" ? (value as () => T)() : value;
 }
 
@@ -25,7 +25,8 @@ export function Show(props: {
   fallback?: VNode | (() => VNode) | (VNode | (() => VNode))[];
 }): VNode {
   const marker = document.createComment("show");
-  let currentNode: Node | null = null;
+  // Track list of nodes (support Fragments)
+  let currentNodes: Node[] = [];
   let showingFallback = false;
 
   // Extract first child (JSX passes as array)
@@ -33,51 +34,64 @@ export function Show(props: {
     const c = Array.isArray(props.children)
       ? props.children[0]
       : props.children;
-    return typeof c === "function" ? c() : c;
+    return typeof c === 'function' ? resolve(c()) : resolve(c);
   };
   const getFallback = () => {
     if (!props.fallback) return null;
     const f = Array.isArray(props.fallback)
       ? props.fallback[0]
       : props.fallback;
-    return typeof f === "function" ? f() : f;
+    return typeof f === 'function' ? resolve(f()) : resolve(f);
   };
 
   const update = () => {
-    const condition = resolve(props.when);
+    const condition = resolveValue(props.when);
     const parent = marker.parentNode;
+    if (!parent) return;
 
     if (condition) {
       // Show main content
-      if (showingFallback && currentNode) {
-        currentNode.parentNode?.removeChild(currentNode);
-        currentNode = null;
+      if (showingFallback && currentNodes.length > 0) {
+        for (const n of currentNodes) {
+           cleanupNode(n);
+           n.parentNode?.removeChild(n);
+        }
+        currentNodes = [];
       }
 
-      if (!currentNode || showingFallback) {
+      if (currentNodes.length === 0 || showingFallback) {
         const child = getChild();
-        if (child instanceof Node) {
-          currentNode = child;
-          parent?.insertBefore(child, marker.nextSibling);
+        if (child) {
+          if (child instanceof DocumentFragment) {
+            currentNodes = Array.from(child.childNodes);
+            parent.insertBefore(child, marker.nextSibling);
+          } else if (child instanceof Node) {
+            currentNodes = [child];
+            parent.insertBefore(child, marker.nextSibling);
+          }
         }
         showingFallback = false;
       }
     } else {
       // Show fallback or nothing
-      if (currentNode && !showingFallback) {
-        currentNode.parentNode?.removeChild(currentNode);
-        currentNode = null;
+      if (currentNodes.length > 0 && !showingFallback) {
+        for (const n of currentNodes) {
+           cleanupNode(n);
+           n.parentNode?.removeChild(n);
+        }
+        currentNodes = [];
       }
 
       if (props.fallback && !showingFallback) {
         const fallback = getFallback();
-        if (fallback instanceof Node) {
-          // Optimization: Only clone if fallback has children or is a fragment
-          const needsClone = 
-            (fallback instanceof Element && fallback.childNodes.length > 0) ||
-            fallback instanceof DocumentFragment;
-          currentNode = needsClone ? fallback.cloneNode(true) : fallback;
-          parent?.insertBefore(currentNode, marker.nextSibling);
+        if (fallback) {
+          if (fallback instanceof DocumentFragment) {
+             currentNodes = Array.from(fallback.childNodes);
+             parent.insertBefore(fallback, marker.nextSibling);
+          } else if (fallback instanceof Node) {
+             currentNodes = [fallback];
+             parent.insertBefore(fallback, marker.nextSibling);
+          }
           showingFallback = true;
         }
       } else if (!props.fallback) {
@@ -138,7 +152,7 @@ export function For<T>(props: {
   frag.appendChild(marker);
 
   const update = () => {
-    const items = resolve(props.each);
+    const items = resolveValue(props.each);
     const targetParent: Node = marker.parentNode || frag;
     const len = items.length;
     const prevLen = currentKeys.length;
@@ -174,7 +188,9 @@ export function For<T>(props: {
           const key = newKeys[i];
           const indexRef = { value: i };
           const indexFn = () => indexRef.value;
-          const node = renderFn(items[i], indexFn);
+          const descriptor = renderFn(items[i], indexFn);
+          const node = resolve(descriptor);
+
           if (node instanceof Node) {
             const entry: ForEntry = {
               node,
@@ -259,7 +275,9 @@ export function For<T>(props: {
       if (!entry) {
         const indexRef = { value: i };
         const indexFn = () => indexRef.value;
-        const node = renderFn(item, indexFn);
+        const descriptor = renderFn(item, indexFn);
+        const node = resolve(descriptor);
+
         if (node instanceof Node) {
           entry = { node, item, index: i, indexFn, indexRef };
           nodeMap.set(key, entry);
@@ -312,14 +330,15 @@ export function Switch(props: {
   children: (MatchChild | VNode)[];
 }): VNode {
   const marker = document.createComment("switch");
-  let currentNode: Node | null = null;
+  // Track current nodes (support Fragments)
+  let currentNodes: Node[] = [];
   let currentIndex: number = -1; // -1 means fallback
 
   const getFallback = () => {
     if (!props.fallback) return null;
     return typeof props.fallback === "function"
-      ? props.fallback()
-      : props.fallback;
+      ? resolve(props.fallback())
+      : resolve(props.fallback);
   };
 
   const update = () => {
@@ -328,25 +347,31 @@ export function Switch(props: {
 
     // Find first matching child
     let newIndex = -1;
-    let matchedChild: VNode | null = null;
+    let matchedChildDescriptor: VNode | null = null;
 
     const children = Array.isArray(props.children)
       ? props.children
       : [props.children];
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
+      let resolvedChild: any = child;
+      if (child && typeof child === 'object' && (child as any)._brand === 'component') {
+         const descriptor = child as any;
+         resolvedChild = descriptor.type(descriptor.props);
+      }
+
       if (
-        child &&
-        typeof child === "object" &&
-        "_isMatch" in child &&
-        (child as MatchChild)._isMatch
+        resolvedChild &&
+        typeof resolvedChild === "object" &&
+        "_isMatch" in resolvedChild &&
+        (resolvedChild as MatchChild)._isMatch
       ) {
-        const matchChild = child as MatchChild;
-        const condition = resolve(matchChild.when);
+        const matchChild = resolvedChild as MatchChild;
+        const condition = resolveValue(matchChild.when);
         if (condition) {
           newIndex = i;
           const c = matchChild.children;
-          matchedChild = typeof c === "function" ? c() : c;
+          matchedChildDescriptor = typeof c === "function" ? c() : c;
           break;
         }
       }
@@ -354,25 +379,34 @@ export function Switch(props: {
 
     // Only update DOM if the matched index changed
     if (newIndex !== currentIndex) {
-      // Remove current node
-      if (currentNode) {
-        cleanupNode(currentNode);
-        currentNode.parentNode?.removeChild(currentNode);
-        currentNode = null;
+      // Remove current nodes
+      if (currentNodes.length > 0) {
+        for (const n of currentNodes) {
+          cleanupNode(n);
+          n.parentNode?.removeChild(n);
+        }
+        currentNodes = [];
       }
 
       currentIndex = newIndex;
 
-      if (matchedChild instanceof Node) {
-        currentNode = matchedChild;
-        parent.insertBefore(matchedChild, marker.nextSibling);
+      let nextNode: Node | null | DocumentFragment = null;
+
+      if (matchedChildDescriptor) {
+        nextNode = resolve(matchedChildDescriptor);
       } else if (newIndex === -1) {
         // Show fallback
-        const fallback = getFallback();
-        if (fallback instanceof Node) {
-          currentNode = fallback;
-          parent.insertBefore(fallback, marker.nextSibling);
-        }
+        nextNode = getFallback();
+      }
+
+      if (nextNode) {
+         if (nextNode instanceof DocumentFragment) {
+            currentNodes = Array.from(nextNode.childNodes);
+            parent.insertBefore(nextNode, marker.nextSibling);
+         } else if (nextNode instanceof Node) {
+            currentNodes = [nextNode];
+            parent.insertBefore(nextNode, marker.nextSibling);
+         }
       }
     }
   };

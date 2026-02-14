@@ -140,15 +140,14 @@ function ApiReference() {
   )
 }
 
-function DeferredSections(): VNode {
-  const frag = document.createDocumentFragment()
-  const sections = [<TodoList />, <ToggleSection />, <ApiReference />]
-  for (const section of sections) {
-    if (section instanceof Node) {
-      frag.appendChild(section)
-    }
-  }
-  return frag as unknown as VNode
+function DeferredSections() {
+  return (
+    <>
+      <TodoList />
+      <ToggleSection />
+      <ApiReference />
+    </>
+  )
 }
 
 function App() {

@@ -121,11 +121,46 @@ function Counter() {
 コンポーネントをDOMにマウントします。
 
 ```tsx
-render(<App />, document.getElementById('app'))
+const dispose = render(<App />, document.getElementById('app'))
+
+// アンマウント（クリーンアップ）
+dispose();
 ```
 
-関数コンポーネントも渡せます：
+---
+
+## Lifecycle & Effects
+
+### `createEffect(fn)`
+
+リアクティブな副作用を作成します。依存関係が変わると自動的に再実行されます。コンポーネントがアンマウントされると自動的に破棄されます。
 
 ```tsx
-render(() => <App />, document.getElementById('app'))
+createEffect(() => {
+  console.log("Count is now", get(countAtom));
+
+  // クリーンアップ関数（次の実行前または破棄時に呼ばれる）
+  return () => console.log("Cleaning up");
+});
+```
+
+### `onCleanup(fn)`
+
+現在のスコープ（コンポーネントやエフェクト）が破棄される時に実行されるコールバックを登録します。
+
+```tsx
+onCleanup(() => {
+  window.removeEventListener("resize", handleResize);
+});
+```
+
+### `createRoot(fn)`
+
+自動破棄されないルートスコープを作成します。通常は `render` が内部で使用するため、ユーザーが直接使うことは稀です。
+
+```tsx
+const dispose = createRoot((dispose) => {
+  createEffect(() => ...);
+  return dispose;
+});
 ```

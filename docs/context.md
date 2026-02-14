@@ -4,7 +4,7 @@ Vitrio provides a Context API for passing data through the component tree withou
 
 ## Usage
 
-**Crucial Note:** Since Vitrio components execute immediately, you must wrap the children of a `Provider` in a function if you want the context to be available during their execution (e.g., when calling `useContext`).
+Thanks to Vitrio's lazy component evaluation, you can use Context naturally like in React.
 
 ```tsx
 import { createContext, useContext } from '@potetotown/vitrio';
@@ -16,10 +16,7 @@ const ThemeContext = createContext("light");
 function App() {
   return (
     <ThemeContext.Provider value="dark">
-      {/* ⚠️ Important: Wrap children in a function */}
-      {() => (
-        <ThemedButton />
-      )}
+      <ThemedButton />
     </ThemeContext.Provider>
   );
 }
@@ -49,4 +46,4 @@ Provides a value to its children.
 
 - **Props:**
   - `value`: The value to provide.
-  - `children`: A function returning the children (recommended) or VNodes.
+  - `children`: VNode(s) or Component(s).

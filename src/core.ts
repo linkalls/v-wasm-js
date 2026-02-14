@@ -35,6 +35,7 @@ let currentDeps: DependencySet | null = null;
 const componentDeps = new WeakMap<Subscriber, DependencySet>();
 const componentCleanups = new WeakMap<Subscriber, Set<() => void>>();
 const componentContexts = new WeakMap<Subscriber, Record<symbol, any> | null>();
+const componentChildren = new WeakMap<Subscriber, Set<Subscriber>>();
 
 // === Context ===
 let globalContext: Record<symbol, any> | null = null;
@@ -283,13 +284,23 @@ function trackSubscriber<T>(state: VAtomState<T>, atom: VAtom<T>): void {
 }
 
 function cleanupComponent(component: Subscriber): void {
-  // Run cleanups first
+  // 1. Cleanup children (effects created inside)
+  const children = componentChildren.get(component);
+  if (children) {
+    for (const child of children) {
+      cleanupComponent(child); // Recursive cleanup
+    }
+    componentChildren.delete(component);
+  }
+
+  // 2. Run cleanups (onCleanup hooks)
   const cleanups = componentCleanups.get(component);
   if (cleanups) {
     for (const cleanup of cleanups) cleanup();
     componentCleanups.delete(component);
   }
 
+  // 3. Unsubscribe from dependencies
   const deps = componentDeps.get(component);
   if (!deps) return;
 
@@ -507,6 +518,16 @@ export function useSet<T>(
 }
 
 export function withRenderContext(component: () => void): void {
+  // Link to parent if exists (Lifecycle management)
+  if (currentComponent) {
+    let children = componentChildren.get(currentComponent);
+    if (!children) {
+      children = new Set();
+      componentChildren.set(currentComponent, children);
+    }
+    children.add(component);
+  }
+
   cleanupComponent(component);
   const deps: DependencySet = new Set();
   componentDeps.set(component, deps);
@@ -563,6 +584,19 @@ export function createEffect(fn: () => void | (() => void)): void {
     }
   };
   withRenderContext(effect);
+}
+
+export function createRoot<T>(fn: (dispose: () => void) => T): T {
+  const owner: Subscriber = () => {}; // Dummy owner
+  const dispose = () => disposeEffect(owner);
+
+  const prev = currentComponent;
+  currentComponent = owner;
+  try {
+    return fn(dispose);
+  } finally {
+    currentComponent = prev;
+  }
 }
 
 // Backwards compatibility/Exports for future use
