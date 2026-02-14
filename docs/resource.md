@@ -1,33 +1,35 @@
 # Resource
 
-Vitrio provides `createResource` for managing async data fetching, perfect for REST or GraphQL calls.
+Vitrio provides `createResource` for managing async data fetching, suitable for REST/GraphQL and production APIs.
 
 ## Usage
 
 ```tsx
 import { createResource } from '@potetotown/vitrio';
 
-// 1. Fetcher function
-const fetchUser = async (id: number) => {
-  const response = await fetch(`/api/user/${id}`);
-  return response.json();
-};
+const userId = v(1);
 
-// 2. Create reactive resource
-// source (id) is reactive. When it changes, fetchUser re-runs.
-const [userId, setUserId] = v(1);
-const user = createResource(userId, fetchUser);
+const user = createResource(
+  () => get(userId),
+  async (id, { signal }) => {
+    const response = await fetch(`/api/user/${id}`, { signal });
+    return response.json();
+  },
+  {
+    retries: 2,
+    retryDelayMs: (attempt) => attempt * 250,
+  }
+);
 
-// 3. Read data
 function UserProfile() {
   return (
     <div>
-      <Show when={user.loading}>
+      <Show when={user.loading()}>
         <p>Loading...</p>
       </Show>
 
-      <Show when={user.error}>
-        <p>Error: {user.error}</p>
+      <Show when={user.error()}>
+        <p>Error: {String(user.error())}</p>
       </Show>
 
       <Show when={user()}>
@@ -40,12 +42,20 @@ function UserProfile() {
 
 ## API
 
-### `createResource<T, S>(source: S | (() => S), fetcher: (s: S, info: { signal }) => Promise<T>)`
+### `createResource(fetcher, options?)`
+### `createResource(source, fetcher, options?)`
 
-Creates a resource that fetches data when source changes.
+- `source`: value or function. When it changes, fetch is re-run.
+- `fetcher(source, { signal })`: async data loader with abort signal.
+- `options`:
+  - `initialValue?: T`
+  - `retries?: number`
+  - `retryDelayMs?: number | ((attempt, error) => number)`
+  - `onError?: (error, attempt) => void`
 
-- **Returns:** Resource getter function `() => T | undefined` with properties:
-  - `loading()`: boolean
-  - `error()`: any
-  - `refetch()`: Manually trigger fetch
-  - `mutate(val)`: Optimistically update local data
+**Returns**: resource function `() => T | undefined` plus helpers:
+- `loading()`
+- `error()`
+- `refetch()`
+- `mutate(val)`
+- `state` (underlying atom)

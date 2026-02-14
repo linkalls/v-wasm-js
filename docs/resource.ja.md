@@ -1,37 +1,39 @@
 # Resource
 
-Vitrioは、非同期データフェッチを管理するための `createResource` を提供しており、REST や GraphQL 呼び出しに最適です。
+Vitrio の `createResource` は、REST / GraphQL などの非同期データ取得を管理します。
 
 ## 使い方
 
 ```tsx
-import { createResource } from '@potetotown/vitrio';
+import { createResource, v, get, Show } from '@potetotown/vitrio';
 
-// 1. フェッチャー関数
-const fetchUser = async (id: number) => {
-  const response = await fetch(`/api/user/${id}`);
-  return response.json();
-};
+const userId = v(1);
 
-// 2. リアクティブなリソースを作成
-// source (id) はリアクティブです。変更されると fetchUser が再実行されます。
-const [userId, setUserId] = v(1);
-const user = createResource(userId, fetchUser);
+const user = createResource(
+  () => get(userId),
+  async (id, { signal }) => {
+    const response = await fetch(`/api/user/${id}`, { signal });
+    return response.json();
+  },
+  {
+    retries: 2,
+    retryDelayMs: (attempt) => attempt * 250,
+  }
+);
 
-// 3. データの読み取り
 function UserProfile() {
   return (
     <div>
-      <Show when={user.loading}>
-        <p>読み込み中...</p>
+      <Show when={user.loading()}>
+        <p>Loading...</p>
       </Show>
 
-      <Show when={user.error}>
-        <p>エラー: {user.error}</p>
+      <Show when={user.error()}>
+        <p>Error: {String(user.error())}</p>
       </Show>
 
       <Show when={user()}>
-        {() => <p>名前: {user()!.name}</p>}
+        {() => <p>Name: {user()!.name}</p>}
       </Show>
     </div>
   );
@@ -40,12 +42,20 @@ function UserProfile() {
 
 ## API
 
-### `createResource<T, S>(source: S | (() => S), fetcher: (s: S, info: { signal }) => Promise<T>)`
+### `createResource(fetcher, options?)`
+### `createResource(source, fetcher, options?)`
 
-source が変更されたときにデータをフェッチするリソースを作成します。
+- `source`: 値または関数。値が変わると再取得。
+- `fetcher(source, { signal })`: AbortSignal 付き非同期ローダー。
+- `options`:
+  - `initialValue?: T`
+  - `retries?: number`
+  - `retryDelayMs?: number | ((attempt, error) => number)`
+  - `onError?: (error, attempt) => void`
 
-- **戻り値:** プロパティを持つリソースゲッター関数 `() => T | undefined`:
-  - `loading()`: boolean
-  - `error()`: any
-  - `refetch()`: 手動でフェッチをトリガー
-  - `mutate(val)`: ローカルデータを楽観的に更新
+**戻り値**: `() => T | undefined` に加えて以下を持つ関数:
+- `loading()`
+- `error()`
+- `refetch()`
+- `mutate(val)`
+- `state`（内部 atom）

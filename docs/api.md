@@ -78,6 +78,48 @@ set(count, 5)
 set(count, prev => prev + 1)
 ```
 
+
+---
+
+## `batch(fn)`
+
+Batches multiple `set()` calls and schedules subscribers once at the end of the batch.
+Use this when updating multiple atoms in one user action to avoid unnecessary intermediate renders.
+
+```tsx
+batch(() => {
+  set(firstName, 'Ada')
+  set(lastName, 'Lovelace')
+  set(isSaving, false)
+})
+```
+
+### Type
+
+```tsx
+function batch<T>(fn: () => T): T
+```
+
+---
+
+## `startTransition(fn)`
+
+Schedules non-urgent updates asynchronously and runs them inside an implicit `batch`.
+Useful for larger updates (filters, table transforms, route-level recalculations) without blocking urgent interactions.
+
+```tsx
+await startTransition(() => {
+  set(filterAtom, "enterprise")
+  set(sortAtom, "revenue")
+})
+```
+
+### Type
+
+```tsx
+function startTransition<T>(fn: () => T): Promise<T>
+```
+
 ---
 
 ## `subscribe(atom, callback)`

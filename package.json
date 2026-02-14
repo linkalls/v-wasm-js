@@ -37,11 +37,12 @@
     "build": "tsdown",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "build:wasm": "v -prod -gc none -b wasm -d no_bounds_checking -d no_backtrace -d no_stdio -o src/vsignal.wasm src/vsignal/signal.v && (wasm-opt -all -O4 --strip-debug src/vsignal.wasm -o src/vsignal.wasm || echo 'wasm-opt not found, skipping')",
-    "prepublishOnly": "bun run build:wasm && bun run build",
-    "prepare": "bun run build:wasm && bun run build",
-    "prepack": "bun ./scripts/ensure-wasm.js",
-    "check:wasm": "bun ./scripts/ensure-wasm.js",
-    "test:wasm": "bun run scripts/check-wasm.ts"
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build",
+    "prepack": "node ./scripts/ensure-wasm.js",
+    "check:wasm": "node ./scripts/ensure-wasm.js",
+    "test:wasm": "node ./scripts/check-wasm.js",
+    "postbuild": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});if(fs.existsSync('src/vsignal.wasm')) fs.copyFileSync('src/vsignal.wasm','dist/vsignal.wasm');\""
   },
   "keywords": [
     "reactive",

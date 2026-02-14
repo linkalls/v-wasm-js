@@ -78,6 +78,48 @@ set(count, 5)
 set(count, prev => prev + 1)
 ```
 
+
+---
+
+## `batch(fn)`
+
+複数の `set()` を1つの更新単位としてまとめます。
+バッチ終了時にまとめて購読通知されるため、中間レンダーを減らせます。
+
+```tsx
+batch(() => {
+  set(firstName, 'Ada')
+  set(lastName, 'Lovelace')
+  set(isSaving, false)
+})
+```
+
+### 型
+
+```tsx
+function batch<T>(fn: () => T): T
+```
+
+---
+
+## `startTransition(fn)`
+
+低優先度の更新を非同期でスケジュールし、内部では `batch` として実行します。
+重いフィルター変更や一覧再計算などをユーザー操作と分離したい時に有効です。
+
+```tsx
+await startTransition(() => {
+  set(filterAtom, "enterprise")
+  set(sortAtom, "revenue")
+})
+```
+
+### 型
+
+```tsx
+function startTransition<T>(fn: () => T): Promise<T>
+```
+
 ---
 
 ## `subscribe(atom, callback)`

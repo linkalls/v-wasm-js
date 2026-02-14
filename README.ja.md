@@ -25,7 +25,7 @@
 
 ## 特徴
 
-- 🎯 **ミニマルAPI** - `v()`, `derive()`, `get()`, `set()` だけ
+- 🎯 **ミニマルAPI** - `v()`, `derive()`, `get()`, `set()`, `batch()`, `startTransition()`
 - ⚡ **リアクティブ** - 自動依存追跡で細粒度更新
 - 🏎️ **Solid方式DOM** - 一度作成、バインディングのみ更新（VDOMなし）
 - 🎨 **React風TSX** - おなじみのJSXで自然に書ける
@@ -117,6 +117,25 @@ JSXで関数を使うと自動更新：
 <div style={() => ({ color: get(themeColor) })}>...</div>
 ```
 
+### `batch()` で更新をまとめる
+
+```tsx
+batch(() => {
+  set(firstName, "Ada")
+  set(lastName, "Lovelace")
+  set(isSaving, false)
+})
+```
+
+### `startTransition()` で低優先更新を遅延実行
+
+```tsx
+await startTransition(() => {
+  set(filter, "enterprise")
+  set(sortBy, "revenue")
+})
+```
+
 ## API一覧
 
 | API                   | 説明                     |
@@ -125,6 +144,8 @@ JSXで関数を使うと自動更新：
 | `derive(fn)`          | 派生値を作成             |
 | `get(atom)`           | 現在値を読み取り         |
 | `set(atom, 値)`       | 値を更新                 |
+| `batch(fn)`          | 複数更新をまとめる       |
+| `startTransition(fn)`| 低優先更新を遅延実行     |
 | `subscribe(atom, fn)` | 変更を監視               |
 | `use(atom)`           | Hook: `[値, セッター]`   |
 | `render(jsx, 要素)`   | DOMにマウント            |
@@ -144,6 +165,13 @@ import { Show, For } from '@potetotown/vitrio'
   {(item) => <li>{item.name}</li>}
 </For>
 ```
+
+## 商用利用向け情報
+
+- セキュリティポリシー: [SECURITY.md](./SECURITY.md)
+- サポート方針: [SUPPORT.md](./SUPPORT.md)
+- コントリビュート/開発フロー: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- 変更履歴: [CHANGELOG.md](./CHANGELOG.md)
 
 ## ドキュメント
 

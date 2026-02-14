@@ -19,7 +19,9 @@ export {
   onCleanup,
   createEffect,
   untrack,
-  createRoot
+  createRoot,
+  batch,
+  startTransition
 } from './core'
 export type { VAtom, InitWasmOptions } from './core'
 
@@ -36,7 +38,7 @@ export { Router, Route, A, navigate, location } from './router'
 
 // Resource
 export { createResource } from './resource'
-export type { Resource, ResourceState, ResourceFetcher } from './resource'
+export type { Resource, ResourceState, ResourceFetcher, ResourceOptions } from './resource'
 
 // Boundary
 export { Suspense, ErrorBoundary } from './boundary'
