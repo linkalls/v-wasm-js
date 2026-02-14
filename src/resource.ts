@@ -41,11 +41,12 @@ export function createResource<T, S = void>(
 
   const state = v<ResourceState<T>>({
     value: undefined,
-    loading: true, // Start loading immediately since we run effect/load right away
+    loading: true, // Start loading immediately
     error: undefined
   });
 
   let abortController: AbortController | null = null;
+  let currentPromise: Promise<T> | null = null;
 
   const load = async (currentSource: S) => {
     if (abortController) abortController.abort();
@@ -55,7 +56,9 @@ export function createResource<T, S = void>(
     set(state, (prev) => ({ ...prev, loading: true }));
 
     try {
-      const result = await fn(currentSource, { signal });
+      const p = fn(currentSource, { signal });
+      currentPromise = p;
+      const result = await p;
 
       if (signal.aborted) return;
 
@@ -83,7 +86,15 @@ export function createResource<T, S = void>(
     if (abortController) abortController.abort();
   });
 
-  const read = () => get(state).value;
+  const read = () => {
+    const s = get(state);
+    if (s.error) throw s.error;
+    if (s.loading && currentPromise) {
+      throw currentPromise;
+    }
+    return s.value;
+  };
+
   read.loading = () => get(state).loading;
   read.error = () => get(state).error;
   read.refetch = () => load(srcFn());

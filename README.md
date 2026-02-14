@@ -36,6 +36,7 @@ English | [日本語](./README.ja.md)
 - 🌐 **Context** - Dependency injection with `createContext`
 - 🛣️ **Router** - Built-in history routing
 - 🔄 **Resources** - Async data fetching with `createResource`
+- 🛡️ **Robust** - Built-in Suspense and Error Boundaries
 
 ## Installation
 
@@ -136,6 +137,8 @@ Attributes can also be reactive functions:
 | `createContext(def)`     | Create context          |
 | `createResource(src, fn)`| Async data fetching     |
 | `Router` / `Route`       | Routing components      |
+| `Suspense`               | Handle async loading    |
+| `ErrorBoundary`          | Handle render errors    |
 
 ## Control Flow
 
@@ -151,6 +154,40 @@ import { Show, For } from '@potetotown/vitrio'
 <For each={items} key={(item) => item.id}>
   {(item) => <li>{item.name}</li>}
 </For>
+```
+
+## Suspense & Async
+
+Vitrio supports concurrent rendering features like Suspense. When a resource is read inside a Suspense boundary, it will suspend rendering until the data is ready.
+
+```tsx
+import { createResource, Suspense } from '@potetotown/vitrio';
+
+const user = createResource(async () => {
+  const res = await fetch('/api/user');
+  return res.json();
+});
+
+function Profile() {
+  // Reading the resource suspends if loading
+  return <div>Hello, {user().name}</div>;
+}
+
+<Suspense fallback={<div>Loading...</div>}>
+  <Profile />
+</Suspense>
+```
+
+## Error Handling
+
+Catch render errors with ErrorBoundary.
+
+```tsx
+import { ErrorBoundary } from '@potetotown/vitrio';
+
+<ErrorBoundary fallback={(err) => <div>Error: {err.message}</div>}>
+  <App />
+</ErrorBoundary>
 ```
 
 ## Documentation

@@ -7,8 +7,8 @@ export interface Context<T> {
   Provider: (props: { value: T; children: any }) => any;
 }
 
-export function createContext<T>(defaultValue: T): Context<T> {
-  const id = Symbol("context");
+export function createContext<T>(defaultValue: T, key?: symbol): Context<T> {
+  const id = key || Symbol("context");
 
   const Provider = (props: { value: T; children: any }) => {
     // Create new context inheriting from current

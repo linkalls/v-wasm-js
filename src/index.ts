@@ -38,6 +38,10 @@ export { Router, Route, A, navigate, location } from './router'
 export { createResource } from './resource'
 export type { Resource, ResourceState, ResourceFetcher } from './resource'
 
+// Boundary
+export { Suspense, ErrorBoundary } from './boundary'
+export type { SuspenseContextValue, ErrorBoundaryContextValue } from './boundary'
+
 // JSX
 // Note: JSX exports are available via 'vitrio/jsx-runtime' or 'vitrio/jsx-dev-runtime'
 // export { jsx, jsxs, jsxDEV, h, Fragment } from './jsx-runtime'
