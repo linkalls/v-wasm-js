@@ -40,7 +40,7 @@ bun add @potetotown/vitrio
 ### 3. main.tsx
 
 ```tsx
-import { v, derive, get, set, render } from '@potetotown/vitrio'
+import { v, derive, get, set, batch, startTransition, render } from '@potetotown/vitrio'
 
 // Define state
 const count = v(0)
@@ -62,6 +62,29 @@ function App() {
 
 // Mount
 render(<App />, document.getElementById('app'))
+```
+
+
+## Batching Updates
+
+When a single action updates multiple atoms, wrap them in `batch()` to reduce intermediate updates.
+
+```tsx
+batch(() => {
+  set(count, c => c + 1)
+  set(message, 'Updated!')
+})
+```
+
+## Deferred Updates
+
+Use `startTransition` for non-urgent UI updates:
+
+```tsx
+await startTransition(() => {
+  set(filter, "enterprise")
+  set(sortBy, "revenue")
+})
 ```
 
 ## Development Server

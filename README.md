@@ -25,7 +25,7 @@ English | [日本語](./README.ja.md)
 
 ## Features
 
-- 🎯 **Minimal API** - Just `v()`, `derive()`, `get()`, `set()`
+- 🎯 **Minimal API** - `v()`, `derive()`, `get()`, `set()`, `batch()`, `startTransition()`
 - ⚡ **Reactive** - Fine-grained updates with automatic dependency tracking
 - 🏎️ **Solid-style DOM** - Create once, update bindings (no VDOM diffing)
 - 🎨 **React-like TSX** - Write components naturally with JSX
@@ -122,6 +122,34 @@ Attributes can also be reactive functions:
 <div style={() => ({ color: get(themeColor) })}>...</div>
 ```
 
+
+### Transactional Updates with `batch()`
+
+Group multiple state writes and flush UI updates once:
+
+```tsx
+import { batch, set } from "@potetotown/vitrio";
+
+batch(() => {
+  set(firstName, "Ada");
+  set(lastName, "Lovelace");
+  set(isSaving, false);
+});
+```
+
+### Deferred Updates with `startTransition()`
+
+Run non-urgent updates asynchronously to keep interactions responsive:
+
+```tsx
+import { startTransition, set } from "@potetotown/vitrio";
+
+await startTransition(() => {
+  set(filter, "enterprise");
+  set(sortBy, "revenue");
+});
+```
+
 ## API Reference
 
 | API                      | Description             |
@@ -130,6 +158,8 @@ Attributes can also be reactive functions:
 | `derive(fn)`             | Create computed value   |
 | `get(atom)`              | Read current value      |
 | `set(atom, value)`       | Update value            |
+| `batch(fn)`             | Batch multiple updates  |
+| `startTransition(fn)`   | Schedule non-urgent updates |
 | `subscribe(atom, fn)`    | Listen to changes       |
 | `use(atom)`              | Hook: `[value, setter]` |
 | `render(jsx, container)` | Mount to DOM            |
@@ -159,6 +189,16 @@ import { Show, For } from '@potetotown/vitrio'
 ## Suspense & Async
 
 Vitrio supports concurrent rendering features like Suspense. When a resource is read inside a Suspense boundary, it will suspend rendering until the data is ready.
+
+`createResource` also supports retries and backoff options for production APIs:
+
+```tsx
+const user = createResource(
+  () => userId(),
+  async (id, { signal }) => fetch(`/api/users/${id}`, { signal }).then((r) => r.json()),
+  { retries: 2, retryDelayMs: (attempt) => attempt * 200 }
+);
+```
 
 ```tsx
 import { createResource, Suspense } from '@potetotown/vitrio';
@@ -190,6 +230,15 @@ import { ErrorBoundary } from '@potetotown/vitrio';
 </ErrorBoundary>
 ```
 
+## Commercial Readiness
+
+Vitrio is MIT licensed and can be used in commercial products.
+
+- Security process: see [SECURITY.md](./SECURITY.md)
+- Support expectations: see [SUPPORT.md](./SUPPORT.md)
+- Contribution and release workflow: see [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Version history: see [CHANGELOG.md](./CHANGELOG.md)
+
 ## Documentation
 
 - [Getting Started](./docs/getting-started.md)
@@ -204,6 +253,8 @@ import { ErrorBoundary } from '@potetotown/vitrio';
 - [React Compatibility](./docs/react-compatibility.md)
 - [Capabilities](./docs/capabilities.md)
 - [Optimization](./docs/optimization.md)
+- [Security Policy](./SECURITY.md)
+- [Support Policy](./SUPPORT.md)
 
 ## Examples & Development
 

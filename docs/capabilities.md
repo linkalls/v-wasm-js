@@ -1,6 +1,8 @@
 # Capabilities and Limitations
 
-## Vitrio v0.0.2 - What it can and cannot do
+## Vitrio v0.0.2 - Capability Matrix
+
+This document is the source of truth for what is **ready**, **experimental**, and **planned**.
 
 ### ✅ Production-Ready Features
 
@@ -13,44 +15,36 @@
 | Routing | ✅ Ready | History API-based SPA routing |
 | Store (Nested State) | ✅ Ready | Proxy-based reactive objects |
 | Event Handling | ✅ Ready | Standard DOM events like `onClick`, `onInput` |
+| Resource (async state) | ✅ Ready | `createResource` supports loading/error/refetch |
+| Error Boundary | ✅ Ready | Render fallback UI when children throw |
+| Suspense | ✅ Ready | Async boundary with fallback rendering |
+| Server-side rendering (`renderToString`) | ✅ Ready | String rendering API via `@potetotown/vitrio/server` |
+| Transitions (`startTransition`) | ✅ Ready | Defers non-urgent updates for smoother interactions |
 
 ### ⚠️ Experimental Features (Use with Caution)
 
 | Feature | Status | Note |
 |---------|--------|------|
-| WASM Optimization | ⚠️ Experimental | Dependency graph engine written in V. Generally fine, but hard to debug |
-| Context API | ⚠️ Experimental | Basic functionality works, but complex DI patterns are unverified |
-| Resource (async) | ⚠️ Experimental | Data fetching exists, but error handling is limited |
+| WASM Optimization | ⚠️ Experimental | Dependency graph engine written in V; fast but harder to debug |
+| Context API | ⚠️ Experimental | Core use-cases work, complex DI patterns are less battle-tested |
+| Hydration | ⚠️ Experimental | Initial SSR-to-client hydration strategy is still evolving |
 
-### ❌ Currently Unsupported Features
+### ❌ Not Yet Supported / Not Included
 
-**1. Server-Side Rendering (SSR)**
-- Vitrio is **browser-only**
-- Depends directly on `document.createElement`, so it won't run in Node.js
-- SSR like Next.js or SvelteKit is not possible
+**1. Streaming SSR**
+- `renderToString` is supported
+- Streaming APIs are not yet implemented
 
 **2. Developer Tools (DevTools)**
 - No visual debugger like React DevTools
-- State tracking must be done via `console.log`
+- State tracking is mainly via logs/custom instrumentation
 
-**3. Strict TypeScript Inference**
-- JSX type checking is basic
-- `IntrinsicElements` are `any`-based
+**3. Strict TypeScript Inference for all JSX edge-cases**
+- Strong TS support exists, but some JSX edge-cases are still broad (`any`-leaning)
 
-**4. Error Boundaries**
-- No equivalent to React's `ErrorBoundary`
-- Errors within components propagate globally
-
-**5. Suspense**
-- Async boundaries like React Suspense are unimplemented
-- Loading states must be managed manually
-
-**6. Animation API**
-- CSS Transitions work, but integration with dedicated libraries (like Framer Motion) is unverified
-
-**7. Test Utilities**
-- No test helpers like React Testing Library
-- E2E testing with Playwright is possible, but unit testing requires custom setup
+**4. Official test utility package**
+- No framework-specific test helper package yet
+- Use Vitest/Jest/Playwright with custom setup
 
 ### 🔬 Browser Compatibility
 
@@ -61,43 +55,29 @@
 - Edge 90+
 
 **Unverified**
-- Internet Explorer (Completely unsupported)
-- Old mobile browsers (iOS 13 or older, Android 7 or older)
-- WebView environments (React Native WebView, etc.)
+- Internet Explorer (unsupported)
+- Older mobile browsers (iOS 13 or older, Android 7 or older)
+- Some embedded WebView environments
 
 ### 🛡️ Security Notes
 
-**Zero-dependency Advantage**
-- No risk from external library vulnerabilities
-- However, **security audit of the V-based WASM module is pending**
+- Vitrio avoids `innerHTML` in normal render paths by default.
+- You are still responsible for sanitizing untrusted HTML if using `innerHTML` explicitly.
+- See `SECURITY.md` for reporting and response policy.
 
-**XSS Prevention**
-- Does not use `innerHTML`
-- However, manual escaping is needed when embedding user input directly into JSX
+### 📊 Performance Scope
 
-### 📊 Performance Guarantees
+Benchmarks show strong results in the provided scenarios, but outcomes vary by app shape, runtime, and hardware.
+Use `benchmarks/run.ts` or `benchmarks/run-node.mjs` to reproduce in your environment.
 
-**Performance in Benchmark Environment**
-- Counter (100 clicks): 5.16x faster than React
-- List Update: 3.83x faster than Solid
+### Commercial Adoption Guidance
 
-**However, performance may degrade in the following cases:**
-- Lists with over 10,000 items
-- Chains of over 100 derived atoms (`derive`)
-- Very deeply nested Store objects
+**Good fit for:**
+- Performance-sensitive SPAs
+- Internal dashboards and tooling
+- Product surfaces where small bundle size matters
 
----
-
-### Conclusion
-
-**Suitable for:**
-- 💚 Personal projects / Portfolio apps
-- 💚 Performance-critical dashboards
-- 💚 Lightweight SPAs (Single Page Apps)
-- 💚 Existing projects struggling with React bundle size
-
-**Avoid for now:**
-- 💔 SEO-heavy sites requiring SSR
-- 💔 Team environments where "unknown tech" is prohibited
-- 💔 Domains requiring "battle-tested tech" (Finance, Medical)
-- 💔 Apps requiring complex error handling
+**Adopt carefully when:**
+- You require streaming SSR today
+- You need an ecosystem-level DevTools/testing suite out of the box
+- You need strict long-term platform support guarantees without internal ownership

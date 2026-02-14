@@ -61,6 +61,7 @@ export function getGlobalContext() {
 // === Batching ===
 const pendingSubscribers = new Set<Subscriber>();
 let flushPending = false;
+let batchDepth = 0;
 // Pre-allocated array to avoid creating new arrays in flush
 let flushBuffer: Subscriber[] = [];
 
@@ -85,9 +86,20 @@ function flush() {
 
 function scheduleUpdates(subscribers: Set<Subscriber>) {
   subscribers.forEach(pendingSubscribers.add, pendingSubscribers);
+  if (batchDepth > 0) return;
   if (!flushPending) {
     flushPending = true;
     queueMicrotask(flush);
+  }
+}
+
+
+function scheduleTransition(cb: () => void): void {
+  const g = globalThis as any;
+  if (typeof g.requestIdleCallback === "function") {
+    g.requestIdleCallback(() => cb());
+  } else {
+    setTimeout(cb, 0);
   }
 }
 
@@ -422,6 +434,33 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
     // Notify direct subscribers
     scheduleUpdates(state.subscribers);
   }
+}
+
+export function batch<T>(fn: () => T): T {
+  batchDepth++;
+  try {
+    return fn();
+  } finally {
+    batchDepth--;
+    if (batchDepth === 0 && pendingSubscribers.size > 0 && !flushPending) {
+      flushPending = true;
+      queueMicrotask(flush);
+    }
+  }
+}
+
+
+
+export function startTransition<T>(fn: () => T): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    scheduleTransition(() => {
+      try {
+        resolve(batch(fn));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
 }
 
 export function subscribe<T>(atom: VAtom<T>, callback: Subscriber): () => void {
