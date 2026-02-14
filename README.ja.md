@@ -152,6 +152,8 @@ import { Show, For } from '@potetotown/vitrio'
 - [JSX・コンポーネント](./docs/jsx.md)
 - [制御フロー](./docs/control-flow.md)
 - [ベンチマーク](./docs/benchmarks.md)
+- [Reactとの互換性ガイド](./docs/react-compatibility.md)
+- [機能範囲と制限事項](./docs/capabilities.md)
 
 ## 開発・ベンチマーク
 
