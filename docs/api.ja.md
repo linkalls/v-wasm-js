@@ -1,10 +1,10 @@
 # Core API
 
-Reference for Vitrio core functions.
+Vitrioのコア関数リファレンス。
 
 ## `v(initial)`
 
-Creates a reactive atom (state).
+リアクティブなatom（状態）を作成します。
 
 ```tsx
 const count = v(0)
@@ -13,7 +13,7 @@ const user = v({ id: 1, name: 'Alice' })
 const items = v<string[]>([])
 ```
 
-### Type
+### 型
 
 ```tsx
 function v<T>(initial: T): VAtom<T>
@@ -23,7 +23,7 @@ function v<T>(initial: T): VAtom<T>
 
 ## `derive(fn)`
 
-Creates a computed value derived from other atoms. It automatically re-computes when dependent atoms change.
+他のatomから派生する計算値を作成します。依存しているatomが変更されると自動的に再計算されます。
 
 ```tsx
 const count = v(10)
@@ -31,7 +31,7 @@ const doubled = derive(get => get(count) * 2)       // 20
 const isEven = derive(get => get(count) % 2 === 0)  // true
 ```
 
-Can depend on multiple atoms:
+複数のatomに依存できます：
 
 ```tsx
 const firstName = v('John')
@@ -39,7 +39,7 @@ const lastName = v('Doe')
 const fullName = derive(get => `${get(firstName)} ${get(lastName)}`)
 ```
 
-### Type
+### 型
 
 ```tsx
 function derive<T>(read: (get: Getter) => T): VAtom<T>
@@ -49,32 +49,32 @@ function derive<T>(read: (get: Getter) => T): VAtom<T>
 
 ## `get(atom)`
 
-Gets the current value of an atom.
+atomの現在の値を取得します。
 
 ```tsx
 const count = v(5)
 console.log(get(count))  // 5
 ```
 
-When called within a **rendering context**, it automatically subscribes to changes:
+**レンダリングコンテキスト内**で呼ばれた場合、自動的に変更を購読します：
 
 ```tsx
-<span>{() => get(count)}</span>  // Automatically updates when count changes
+<span>{() => get(count)}</span>  // countが変わると自動更新
 ```
 
 ---
 
 ## `set(atom, value)`
 
-Updates the value of an atom.
+atomの値を更新します。
 
 ```tsx
 const count = v(0)
 
-// Set value directly
+// 直接値を設定
 set(count, 5)
 
-// Update using previous value
+// 前の値を使って更新
 set(count, prev => prev + 1)
 ```
 
@@ -82,7 +82,7 @@ set(count, prev => prev + 1)
 
 ## `subscribe(atom, callback)`
 
-Subscribes to changes in an atom. Returns an unsubscribe function.
+atomの変更を購読します。購読解除関数を返します。
 
 ```tsx
 const count = v(0)
@@ -93,19 +93,19 @@ const unsubscribe = subscribe(count, () => {
 
 set(count, 1)  // "Count changed: 1"
 
-unsubscribe()  // Unsubscribe
+unsubscribe()  // 購読解除
 ```
 
 ---
 
 ## `use(atom)`
 
-Returns a `[value, setter]` tuple like React hooks.
+Reactのフックのように `[value, setter]` のタプルを返します。
 
 ```tsx
 function Counter() {
   const [count, setCount] = use(countAtom)
-  
+
   return (
     <button onClick={() => setCount(c => c + 1)}>
       Count: {count}
@@ -118,12 +118,12 @@ function Counter() {
 
 ## `render(component, container)`
 
-Mounts a component to the DOM.
+コンポーネントをDOMにマウントします。
 
 ```tsx
 const dispose = render(<App />, document.getElementById('app'))
 
-// Unmount (cleanup)
+// アンマウント（クリーンアップ）
 dispose();
 ```
 
@@ -133,20 +133,20 @@ dispose();
 
 ### `createEffect(fn)`
 
-Creates a reactive side effect. Automatically re-runs when dependencies change. Automatically disposed when the component unmounts.
+リアクティブな副作用を作成します。依存関係が変わると自動的に再実行されます。コンポーネントがアンマウントされると自動的に破棄されます。
 
 ```tsx
 createEffect(() => {
   console.log("Count is now", get(countAtom));
 
-  // Cleanup function (called before next run or on disposal)
+  // クリーンアップ関数（次の実行前または破棄時に呼ばれる）
   return () => console.log("Cleaning up");
 });
 ```
 
 ### `onCleanup(fn)`
 
-Registers a callback to run when the current scope (component or effect) is disposed.
+現在のスコープ（コンポーネントやエフェクト）が破棄される時に実行されるコールバックを登録します。
 
 ```tsx
 onCleanup(() => {
@@ -156,7 +156,7 @@ onCleanup(() => {
 
 ### `createRoot(fn)`
 
-Creates a root scope that is not automatically disposed. Typically used internally by `render`, so users rarely need to use it directly.
+自動破棄されないルートスコープを作成します。通常は `render` が内部で使用するため、ユーザーが直接使うことは稀です。
 
 ```tsx
 const dispose = createRoot((dispose) => {

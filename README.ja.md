@@ -147,13 +147,18 @@ import { Show, For } from '@potetotown/vitrio'
 
 ## ドキュメント
 
-- [はじめに](./docs/getting-started.md)
-- [コアAPI](./docs/api.md)
-- [JSX・コンポーネント](./docs/jsx.md)
-- [制御フロー](./docs/control-flow.md)
-- [ベンチマーク](./docs/benchmarks.md)
-- [Reactとの互換性ガイド](./docs/react-compatibility.md)
-- [機能範囲と制限事項](./docs/capabilities.md)
+- [はじめに](./docs/getting-started.ja.md)
+- [コアAPI](./docs/api.ja.md)
+- [JSX・コンポーネント](./docs/jsx.ja.md)
+- [制御フロー](./docs/control-flow.ja.md)
+- [Store](./docs/store.ja.md)
+- [Context](./docs/context.ja.md)
+- [Router](./docs/router.ja.md)
+- [Resource](./docs/resource.ja.md)
+- [ベンチマーク](./docs/benchmarks.ja.md)
+- [Reactとの互換性ガイド](./docs/react-compatibility.ja.md)
+- [機能範囲と制限事項](./docs/capabilities.ja.md)
+- [最適化ガイド](./docs/optimization.ja.md)
 
 ## 開発・ベンチマーク
 

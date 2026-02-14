@@ -1,103 +1,103 @@
-# 機能範囲と制限事項
+# Capabilities and Limitations
 
-## Vitrio v0.0.2 - できること・できないこと
+## Vitrio v0.0.2 - What it can and cannot do
 
-### ✅ 本番で使える機能
+### ✅ Production-Ready Features
 
-| 機能 | 状態 | 説明 |
-|------|------|------|
-| リアクティブな状態管理 | ✅ 本番Ready | `v()`, `derive()` による細粒度リアクティビティ |
-| JSX描画 | ✅ 本番Ready | React風のTSX記法に対応 |
-| 条件分岐 (`Show`) | ✅ 本番Ready | `when` プロップで条件に応じた描画 |
-| リスト描画 (`For`) | ✅ 本番Ready | キー付き差分更新による高速リスト |
-| ルーティング | ✅ 本番Ready | History API ベースのSPAルーティング |
-| Store（ネストした状態） | ✅ 本番Ready | Proxyベースのリアクティブオブジェクト |
-| イベントハンドリング | ✅ 本番Ready | `onClick`, `onInput` 等のDOM標準イベント |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Reactive State Management | ✅ Ready | Fine-grained reactivity with `v()` and `derive()` |
+| JSX Rendering | ✅ Ready | Supports React-like TSX syntax |
+| Conditional Rendering (`Show`) | ✅ Ready | Render based on conditions via `when` prop |
+| List Rendering (`For`) | ✅ Ready | High-performance lists with keyed updates |
+| Routing | ✅ Ready | History API-based SPA routing |
+| Store (Nested State) | ✅ Ready | Proxy-based reactive objects |
+| Event Handling | ✅ Ready | Standard DOM events like `onClick`, `onInput` |
 
-### ⚠️ 実験的機能（注意して使用）
+### ⚠️ Experimental Features (Use with Caution)
 
-| 機能 | 状態 | 注意点 |
-|------|------|--------|
-| WASM による高速化 | ⚠️ 実験的 | V言語で書かれた依存関係グラフエンジン。通常は問題ないが、デバッグが困難 |
-| Context API | ⚠️ 実験的 | 基本機能は動作するが、複雑なDI（依存性注入）パターンは未検証 |
-| Resource（async） | ⚠️ 実験的 | データフェッチ機能は存在するが、エラーハンドリングが限定的 |
+| Feature | Status | Note |
+|---------|--------|------|
+| WASM Optimization | ⚠️ Experimental | Dependency graph engine written in V. Generally fine, but hard to debug |
+| Context API | ⚠️ Experimental | Basic functionality works, but complex DI patterns are unverified |
+| Resource (async) | ⚠️ Experimental | Data fetching exists, but error handling is limited |
 
-### ❌ 現時点で未対応の機能
+### ❌ Currently Unsupported Features
 
 **1. Server-Side Rendering (SSR)**
-- Vitrio は **ブラウザ専用** です
-- `document.createElement` に直接依存しているため、Node.js環境では動作しません
-- Next.js や SvelteKit のような SSR は不可能
+- Vitrio is **browser-only**
+- Depends directly on `document.createElement`, so it won't run in Node.js
+- SSR like Next.js or SvelteKit is not possible
 
-**2. 開発者ツール（DevTools）**
-- React DevTools のような視覚的デバッガーはありません
-- 状態の追跡は `console.log` で行う必要があります
+**2. Developer Tools (DevTools)**
+- No visual debugger like React DevTools
+- State tracking must be done via `console.log`
 
-**3. TypeScript の厳密な型推論**
-- JSX の型チェックは基本的なものに限られます
-- `IntrinsicElements` は `any` ベース
+**3. Strict TypeScript Inference**
+- JSX type checking is basic
+- `IntrinsicElements` are `any`-based
 
-**4. エラーバウンダリ**
-- React の `ErrorBoundary` に相当する機能はありません
-- コンポーネント内のエラーはグローバルに伝播します
+**4. Error Boundaries**
+- No equivalent to React's `ErrorBoundary`
+- Errors within components propagate globally
 
 **5. Suspense**
-- React の Suspense のような非同期境界は未実装
-- ローディング状態は手動で管理する必要があります
+- Async boundaries like React Suspense are unimplemented
+- Loading states must be managed manually
 
-**6. アニメーション API**
-- CSS Transition は使えますが、専用のアニメーションライブラリ（Framer Motion等）との統合は未検証
+**6. Animation API**
+- CSS Transitions work, but integration with dedicated libraries (like Framer Motion) is unverified
 
-**7. テストユーティリティ**
-- React Testing Library のようなテストヘルパーはありません
-- Playwright での E2E テストは可能ですが、ユニットテストは自前で構築が必要
+**7. Test Utilities**
+- No test helpers like React Testing Library
+- E2E testing with Playwright is possible, but unit testing requires custom setup
 
-### 🔬 ブラウザ互換性
+### 🔬 Browser Compatibility
 
-**動作確認済み**
+**Verified**
 - Chrome 90+
 - Firefox 88+
 - Safari 14+
 - Edge 90+
 
-**未検証**
-- Internet Explorer（完全に非対応）
-- 古いモバイルブラウザ（iOS 13以前、Android 7以前）
-- WebView 環境（React Native WebView 等）
+**Unverified**
+- Internet Explorer (Completely unsupported)
+- Old mobile browsers (iOS 13 or older, Android 7 or older)
+- WebView environments (React Native WebView, etc.)
 
-### 🛡️ セキュリティ注意事項
+### 🛡️ Security Notes
 
-**依存関係ゼロの利点**
-- 外部ライブラリ由来の脆弱性リスクがありません
-- ただし、**V言語製のWASMモジュールのセキュリティ監査は未実施**
+**Zero-dependency Advantage**
+- No risk from external library vulnerabilities
+- However, **security audit of the V-based WASM module is pending**
 
-**XSS対策**
-- `innerHTML` は使用していません
-- ただし、ユーザー入力を直接 JSX に埋め込む際は手動でエスケープが必要
+**XSS Prevention**
+- Does not use `innerHTML`
+- However, manual escaping is needed when embedding user input directly into JSX
 
-### 📊 パフォーマンス保証
+### 📊 Performance Guarantees
 
-**ベンチマーク環境での性能**
-- カウンター（100クリック）: React の 5.16倍高速
-- リスト更新: Solid の 3.83倍高速
+**Performance in Benchmark Environment**
+- Counter (100 clicks): 5.16x faster than React
+- List Update: 3.83x faster than Solid
 
-**ただし、以下の場合は性能が低下する可能性があります**
-- 1万個以上の要素を持つリスト
-- 100個以上の派生Atom（`derive`）が連鎖している場合
-- 非常に深いネストを持つStoreオブジェクト
+**However, performance may degrade in the following cases:**
+- Lists with over 10,000 items
+- Chains of over 100 derived atoms (`derive`)
+- Very deeply nested Store objects
 
 ---
 
-### 結論
+### Conclusion
 
-**こういうプロジェクトに向いてる：**
-- 💚 個人プロジェクト・ポートフォリオアプリ
-- 💚 パフォーマンスが最優先のダッシュボード
-- 💚 軽量なSPA（シングルページアプリ）
-- 💚 Reactのバンドルサイズに悩んでる既存プロジェクト
+**Suitable for:**
+- 💚 Personal projects / Portfolio apps
+- 💚 Performance-critical dashboards
+- 💚 Lightweight SPAs (Single Page Apps)
+- 💚 Existing projects struggling with React bundle size
 
-**今は避けた方がいいプロジェクト：**
-- 💔 SSRが必須のSEO重視サイト
-- 💔 チーム開発で「誰も知らない技術」がNGな現場
-- 💔 金融・医療など「枯れた技術」が求められる領域
-- 💔 複雑なエラーハンドリングが必要なアプリ
+**Avoid for now:**
+- 💔 SEO-heavy sites requiring SSR
+- 💔 Team environments where "unknown tech" is prohibited
+- 💔 Domains requiring "battle-tested tech" (Finance, Medical)
+- 💔 Apps requiring complex error handling

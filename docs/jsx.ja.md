@@ -1,10 +1,10 @@
 # JSX & Components
 
-How to write JSX and components in Vitrio.
+VitrioでのJSXとコンポーネントの書き方。
 
-## Basic Syntax
+## 基本構文
 
-Vitrio supports React-like JSX.
+VitrioはReact風のJSXをサポートしています。
 
 ```tsx
 function Greeting() {
@@ -19,43 +19,43 @@ function Button({ label, onClick }) {
   return <button onClick={onClick}>{label}</button>
 }
 
-// Usage
+// 使用
 <Button label="Click me" onClick={() => console.log('clicked')} />
 ```
 
-## Event Handlers
+## イベントハンドラ
 
-Supports `onClick`, `onInput`, `onChange`, etc.:
+`onClick`, `onInput`, `onChange` などをサポート：
 
 ```tsx
 <button onClick={() => doSomething()}>Click</button>
 <input onInput={(e) => set(text, e.target.value)} />
 ```
 
-## Styles
+## スタイル
 
-String or Object:
+文字列または オブジェクト：
 
 ```tsx
-// String
+// 文字列
 <div style="color: red; font-size: 16px;">Text</div>
 
-// Object
+// オブジェクト
 <div style={{ color: 'red', fontSize: '16px' }}>Text</div>
 ```
 
-## Classes
+## クラス
 
-`class` or `className`:
+`class` または `className`：
 
 ```tsx
 <div class="card">Content</div>
 <div className="card">Content</div>
 ```
 
-## Refs
+## Ref
 
-Direct access to elements:
+要素への直接アクセス：
 
 ```tsx
 <input ref={(el) => {
@@ -64,23 +64,23 @@ Direct access to elements:
 }} />
 ```
 
-## Reactive Text
+## リアクティブテキスト
 
-Use functions for automatic updates:
+関数を使うと自動更新：
 
 ```tsx
 const count = v(0)
 
-// ❌ Static (won't update)
+// ❌ 静的（更新されない）
 <span>{get(count)}</span>
 
-// ✅ Reactive (auto-updates)
+// ✅ リアクティブ（自動更新）
 <span>{() => get(count)}</span>
 ```
 
-## Component Patterns
+## コンポーネントパターン
 
-### Simple Component
+### シンプルなコンポーネント
 
 ```tsx
 function Card({ title, children }) {
@@ -93,10 +93,10 @@ function Card({ title, children }) {
 }
 ```
 
-### Stateful Component
+### 状態を持つコンポーネント
 
 ```tsx
-// Global state
+// グローバル状態
 const count = v(0)
 
 function Counter() {
@@ -109,7 +109,7 @@ function Counter() {
 }
 ```
 
-### Manual Updates using Refs
+### Refを使った手動更新
 
 ```tsx
 function TodoList() {
@@ -128,7 +128,7 @@ function TodoList() {
 }
 ```
 
-## Fragments
+## Fragment
 
 ```tsx
 import { Fragment } from '@potetotown/vitrio'
@@ -143,6 +143,6 @@ function List() {
 }
 ```
 
-## Notes
+## メモ
 
-- Prop iteration uses `for...in` and `hasOwnProperty` to ignore inherited properties.
+- props の反復は `for...in` と `hasOwnProperty` を使い、継承プロパティを無視します。
