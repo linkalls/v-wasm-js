@@ -32,6 +32,10 @@ English | [日本語](./README.ja.md)
 - 📦 **Tiny** - ~12KB minified
 - 🧹 **Auto-cleanup** - Reactive bindings are disposed when nodes are removed
 - 🔧 **Bun-first** - Built for modern tooling
+- 🏬 **Store** - Complex state management with `createStore`
+- 🌐 **Context** - Dependency injection with `createContext`
+- 🛣️ **Router** - Built-in history routing
+- 🔄 **Resources** - Async data fetching with `createResource`
 
 ## Installation
 
@@ -128,6 +132,10 @@ Attributes can also be reactive functions:
 | `subscribe(atom, fn)`    | Listen to changes       |
 | `use(atom)`              | Hook: `[value, setter]` |
 | `render(jsx, container)` | Mount to DOM            |
+| `createStore(init)`      | Create nested store     |
+| `createContext(def)`     | Create context          |
+| `createResource(src, fn)`| Async data fetching     |
+| `Router` / `Route`       | Routing components      |
 
 ## Control Flow
 
@@ -151,6 +159,10 @@ import { Show, For } from '@potetotown/vitrio'
 - [Core API](./docs/api.md)
 - [JSX & Components](./docs/jsx.md)
 - [Control Flow](./docs/control-flow.md)
+- [Store](./docs/store.md)
+- [Context](./docs/context.md)
+- [Router](./docs/router.md)
+- [Resource](./docs/resource.md)
 - [Benchmarks](./docs/benchmarks.md)
 
 ## Examples & Development
