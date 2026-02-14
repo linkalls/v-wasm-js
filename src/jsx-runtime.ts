@@ -11,7 +11,14 @@ export type ComponentDescriptor = {
   props: Props;
 };
 
-export type VNode = Element | Text | DocumentFragment | ComponentDescriptor;
+export type ServerElement = {
+  _brand: "server-element";
+  type: string;
+  props: Props;
+  children: Child[];
+};
+
+export type VNode = Element | Text | DocumentFragment | ComponentDescriptor | ServerElement;
 
 // Child types that can appear in JSX
 export type Child =
@@ -115,6 +122,16 @@ function createElement(type: string | Component, props: Props | null): VNode {
       _brand: "component",
       type,
       props: { ...props, children: allChildren }
+    };
+  }
+
+  // Server Side Rendering Support
+  if (typeof document === "undefined") {
+    return {
+      _brand: "server-element",
+      type: type as string,
+      props: props || {},
+      children: allChildren
     };
   }
 
@@ -244,7 +261,10 @@ function appendChildren(parent: Element, children: any[]): void {
 /**
  * Fragment support
  */
-export function Fragment(props: { children?: any[] }): DocumentFragment {
+export function Fragment(props: { children?: any[] }): DocumentFragment | any[] {
+  if (typeof document === "undefined") {
+    return props.children || [];
+  }
   const frag = document.createDocumentFragment();
   if (props.children) {
     appendChildren(

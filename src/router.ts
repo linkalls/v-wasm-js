@@ -8,23 +8,32 @@ export interface LocationState {
   hash: string;
 }
 
-const getWindowLocation = (): LocationState => ({
-  path: window.location.pathname,
-  query: window.location.search,
-  hash: window.location.hash
-});
+const getWindowLocation = (): LocationState => {
+  if (typeof window === 'undefined') {
+    return { path: '/', query: '', hash: '' };
+  }
+  return {
+    path: window.location.pathname,
+    query: window.location.search,
+    hash: window.location.hash
+  };
+};
 
 export const location: VAtom<LocationState> = v(getWindowLocation());
 
 export function navigate(to: string) {
-  window.history.pushState(null, "", to);
-  set(location, getWindowLocation());
+  if (typeof window !== 'undefined') {
+    window.history.pushState(null, "", to);
+    set(location, getWindowLocation());
+  }
 }
 
 export function Router(props: { children: any }) {
   const update = () => set(location, getWindowLocation());
-  window.addEventListener("popstate", update);
-  onCleanup(() => window.removeEventListener("popstate", update));
+  if (typeof window !== 'undefined') {
+    window.addEventListener("popstate", update);
+    onCleanup(() => window.removeEventListener("popstate", update));
+  }
   return props.children;
 }
 

@@ -22,6 +22,10 @@
       "import": "./dist/jsx-dev-runtime.mjs",
       "types": "./dist/jsx-dev-runtime.d.mts"
     },
+    "./server": {
+      "import": "./dist/server.mjs",
+      "types": "./dist/server.d.mts"
+    },
     "./wasm": "./dist/vsignal.wasm"
   },
   "files": [

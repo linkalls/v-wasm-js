@@ -2,7 +2,12 @@ import { defineConfig } from "tsdown";
 import { wasm } from "@rollup/plugin-wasm";
 
 export default defineConfig({
-  entry: ["./src/index.ts", "./src/jsx-runtime.ts", "./src/jsx-dev-runtime.ts"],
+  entry: {
+    index: "./src/index.ts",
+    "jsx-runtime": "./src/jsx-runtime.ts",
+    "jsx-dev-runtime": "./src/jsx-dev-runtime.ts",
+    server: "./src/server/index.ts"
+  },
   outDir: "./dist",
   minify: true,
   sourcemap: true,
