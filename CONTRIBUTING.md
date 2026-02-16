@@ -24,6 +24,7 @@ npm run test:wasm
 
 - Keep changes focused and atomic
 - Update docs for user-facing API changes
+  - If you change or add docs under `docs/*.md`, also update the matching `*.ja.md` when available
 - Ensure build/check commands pass locally
 - Add/update tests when behavior changes
 
