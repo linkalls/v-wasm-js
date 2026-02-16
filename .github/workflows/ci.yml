@@ -49,7 +49,11 @@ jobs:
             cd vlang
             make -j2
           fi
+
+          # $GITHUB_PATH only applies to subsequent steps, so export PATH for this step too.
           echo "$PWD/vlang" >> $GITHUB_PATH
+          export PATH="$PWD/vlang:$PATH"
+          v version
 
       - name: Install Binaryen (wasm-opt)
         run: |
@@ -73,7 +77,9 @@ jobs:
         run: bun install
 
       - name: Build wasm
-        run: bun run build:wasm
+        run: |
+          export PATH="$PWD/vlang:$PATH"
+          bun run build:wasm
 
       - name: Build
         run: bun run build
