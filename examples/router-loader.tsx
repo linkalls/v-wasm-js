@@ -2,7 +2,7 @@
  * Minimal loader/action demo (SPA only)
  * Run with your existing example runner if you have one.
  */
-import { Router, Route, A, navigate, useLoaderData, useAction } from "../src/router";
+import { Router, Route, A } from "../src/router";
 import { Suspense } from "../src/boundary";
 import { v, get, set } from "../src/core";
 
@@ -17,32 +17,15 @@ function Home() {
   );
 }
 
-function User() {
-  const data = useLoaderData<{ id: string; count: number }>();
-  const action = useAction<{ inc: number }, { ok: true }>();
-
-  return (
-    <div>
-      <h1>User {data.id}</h1>
-      <div>loader count: {data.count}</div>
-      <button onClick={() => action.run({ inc: 1 })}>inc</button>
-      {() => (action.pending() ? <div>pending...</div> : null)}
-      <div>
-        <A href="/">back</A>
-      </div>
-    </div>
-  );
-}
-
 export function App() {
   return (
     <Router>
       <Suspense fallback={<div>loading...</div>}>
         <Route path="/" children={<Home />} />
+
         <Route
           path="/users/:id"
           loader={({ params }) => {
-            // fake fetch
             const count = get(apiCount);
             return Promise.resolve({ id: params.id, count });
           }}
@@ -51,7 +34,17 @@ export function App() {
             return Promise.resolve({ ok: true as const });
           }}
         >
-          {() => <User />}
+          {(data, ctx) => (
+            <div>
+              <h1>User {data.id}</h1>
+              <div>loader count: {data.count}</div>
+              <button onClick={() => ctx.action.run({ inc: 1 })}>inc</button>
+              {() => (ctx.action.pending() ? <div>pending...</div> : null)}
+              <div>
+                <A href="/">back</A>
+              </div>
+            </div>
+          )}
         </Route>
       </Suspense>
     </Router>

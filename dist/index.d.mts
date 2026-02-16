@@ -91,13 +91,21 @@ declare function navigate(to: string): void;
 declare function Router(props: {
   children: any;
 }): any;
+type ActionApi<TInput = any, TOutput = any> = {
+  run: (input: TInput) => Promise<TOutput>;
+  pending: () => boolean;
+  error: () => any;
+  data: () => TOutput | undefined;
+};
 declare function Route<T = any>(props: {
   id?: string;
   path: string;
   loader?: RouteLoader<T>;
   action?: RouteAction<any, any>;
   invalidateOnAction?: boolean;
-  children: any;
+  children: any | ((data: T, ctx: LoaderCtx & {
+    action: ActionApi<any, any>;
+  }) => any);
 }): VNode;
 declare function A(props: {
   href: string;

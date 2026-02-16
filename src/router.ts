@@ -85,12 +85,14 @@ export function useLoaderData<T = any>(): T {
   return useContext(LoaderDataContext) as T;
 }
 
-export function useAction<TInput = any, TOutput = any>(): {
+export type ActionApi<TInput = any, TOutput = any> = {
   run: (input: TInput) => Promise<TOutput>;
   pending: () => boolean;
   error: () => any;
   data: () => TOutput | undefined;
-} {
+};
+
+export function useAction<TInput = any, TOutput = any>(): ActionApi<TInput, TOutput> {
   const stAtom = useContext(ActionContext);
   if (!stAtom) {
     return {
@@ -195,7 +197,9 @@ export function Route<T = any>(props: {
   loader?: RouteLoader<T>;
   action?: RouteAction<any, any>;
   invalidateOnAction?: boolean;
-  children: any;
+  children:
+    | any
+    | ((data: T, ctx: LoaderCtx & { action: ActionApi<any, any> }) => any);
 }) {
   const routeId = props.id || props.path;
 
@@ -243,8 +247,12 @@ export function Route<T = any>(props: {
         }));
       }
 
+      const actionApi = useAction();
+
       const child =
-        typeof props.children === "function" ? props.children(data) : props.children;
+        typeof props.children === "function"
+          ? props.children(data, { ...ctx, action: actionApi })
+          : props.children;
 
       // Provide contexts to children
       return resolve({
