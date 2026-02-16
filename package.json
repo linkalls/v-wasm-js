@@ -34,6 +34,7 @@
   ],
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
+    "dev:router": "bun run examples/router-demo/serve.ts",
     "build": "tsdown --config tsdown.config.mjs",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
     "build:wasm": "v -prod -gc none -b wasm -d no_bounds_checking -d no_backtrace -d no_stdio -o src/vsignal.wasm src/vsignal/signal.v && (wasm-opt -all -O4 --strip-debug src/vsignal.wasm -o src/vsignal.wasm || echo 'wasm-opt not found, skipping')",
