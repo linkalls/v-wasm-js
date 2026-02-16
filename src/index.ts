@@ -34,7 +34,24 @@ export { createContext, useContext } from './context'
 export type { Context } from './context'
 
 // Router
-export { Router, Routes, Route, Outlet, A, navigate, prefetch, location, invalidate, invalidateRoute, invalidateCurrent, dehydrateLoaderCache, hydrateLoaderCache, matchPath } from './router'
+export {
+  Router,
+  Routes,
+  Route,
+  Outlet,
+  A,
+  navigate,
+  prefetch,
+  location,
+  invalidate,
+  invalidateRoute,
+  invalidateCurrent,
+  dehydrateLoaderCache,
+  hydrateLoaderCache,
+  matchPath,
+} from './router'
+
+export type { LoaderCtx, RouteLoader, RouteAction, ActionApi } from './router'
 
 // Resource
 export { createResource } from './resource'
