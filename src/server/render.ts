@@ -32,6 +32,8 @@ export function renderToString(node: Child): string {
       const result = node();
       return renderToString(result);
     } catch (e) {
+      // Allow Suspense-style promise throwing to bubble to an async renderer.
+      if (e && typeof (e as any).then === 'function') throw e;
       console.error('Error executing reactive function in SSR:', e);
       return '';
     }
@@ -42,8 +44,13 @@ export function renderToString(node: Child): string {
     // Component Descriptor
     if ('_brand' in node && node._brand === 'component') {
       const descriptor = node as ComponentDescriptor;
-      const result = descriptor.type(descriptor.props);
-      return renderToString(result);
+      try {
+        const result = descriptor.type(descriptor.props);
+        return renderToString(result);
+      } catch (e) {
+        if (e && typeof (e as any).then === 'function') throw e;
+        throw e;
+      }
     }
 
     // Server Element

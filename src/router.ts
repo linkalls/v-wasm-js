@@ -240,12 +240,31 @@ export function useAction<TInput = any, TOutput = any>(): ActionApi<TInput, TOut
 
 // --- Loader cache (SPA) ---
 
-type CacheEntry =
+export type CacheEntry =
   | { status: "pending"; promise: Promise<any> }
   | { status: "fulfilled"; value: any }
   | { status: "rejected"; error: any };
 
 const loaderCache = new Map<string, CacheEntry>();
+
+// --- SSR/CSR hydration helpers ---
+export function dehydrateLoaderCache(): Record<string, { status: "fulfilled"; value: any } | { status: "rejected"; error: any }> {
+  const out: any = {};
+  for (const [k, v] of loaderCache.entries()) {
+    if (v.status === "fulfilled") out[k] = { status: "fulfilled", value: v.value };
+    if (v.status === "rejected") out[k] = { status: "rejected", error: String((v as any).error ?? '') };
+  }
+  return out;
+}
+
+export function hydrateLoaderCache(data: Record<string, any> | null | undefined): void {
+  if (!data) return;
+  for (const [k, v] of Object.entries(data)) {
+    if (!v || typeof v !== 'object') continue;
+    if ((v as any).status === 'fulfilled') loaderCache.set(k, { status: 'fulfilled', value: (v as any).value });
+    if ((v as any).status === 'rejected') loaderCache.set(k, { status: 'rejected', error: new Error(String((v as any).error ?? '')) });
+  }
+}
 
 type RouteRegistryEntry = {
   routeId: string;
