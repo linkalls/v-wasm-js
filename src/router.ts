@@ -65,10 +65,11 @@ const getWindowLocation = (basename = ""): LocationState => {
 export const location: VAtom<LocationState> = v(getWindowLocation());
 
 function resolveUrl(to: string): URL {
-  const base =
+  let base =
     typeof window !== "undefined" && window.location
       ? window.location.href
       : "http://localhost/";
+  if (base === "about:srcdoc") base = "http://localhost/";
   return new URL(to, base);
 }
 
@@ -103,8 +104,20 @@ export function navigate(to: string) {
     const relPath = stripBasename(url.pathname, base);
     const next = withBasename(relPath, base) + url.search + url.hash;
 
-    window.history.pushState(null, "", next);
-    set(location, getWindowLocation(base));
+    const nextLoc: LocationState = {
+      path: relPath,
+      query: url.search,
+      hash: url.hash,
+    };
+
+    try {
+      window.history.pushState(null, "", next);
+    } catch (e) {
+      // In srcdoc iframe or restricted environments, pushState may fail.
+      // We proceed with updating the app location state anyway (memory routing).
+      console.warn("Router: history.pushState blocked", e);
+    }
+    set(location, nextLoc);
   }
 }
 
