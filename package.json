@@ -35,6 +35,7 @@
   "scripts": {
     "dev": "bun run examples/counter/serve.ts",
     "dev:router": "bun run examples/router-demo/serve.ts",
+    "test:unit": "bun test tests/core.spec.ts tests/form.spec.ts tests/router-match.spec.ts",
     "test:e2e": "bunx playwright test",
     "build": "tsdown --config tsdown.config.mjs",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
