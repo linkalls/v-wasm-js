@@ -27,7 +27,11 @@ jobs:
         run: |
           cd vlang
           ./v run ./cmd/tools/install_binaryen.vsh
+
+          # NOTE: $GITHUB_PATH takes effect in *subsequent* steps, not within this step.
           echo "$PWD/thirdparty/binaryen/bin" >> $GITHUB_PATH
+
+          export PATH="$PWD/thirdparty/binaryen/bin:$PATH"
           wasm-opt --version
 
       - name: Install deps
