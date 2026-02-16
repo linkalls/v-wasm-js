@@ -15,13 +15,41 @@ jobs:
         with:
           bun-version: latest
 
+      # Cache bun downloads + install artifacts
+      - name: Cache bun
+      
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+
+      # Cache Playwright browsers (avoids repeated downloads)
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock', 'package.json') }}
+
+      # Cache V compiler + thirdparty toolchains
+      - name: Cache V toolchain
+        uses: actions/cache@v4
+        with:
+          path: vlang
+          key: ${{ runner.os }}-vlang-${{ hashFiles('.github/workflows/ci.yml') }}
+
       # Build toolchain for generating src/vsignal.wasm
-      - name: Install V
+      - name: Install V (if not cached)
         run: |
-          git clone --depth 1 https://github.com/vlang/v vlang
-          cd vlang
-          make -j2
-          echo "$PWD" >> $GITHUB_PATH
+          if [ -x "vlang/v" ]; then
+            echo "V already cached"
+          else
+            git clone --depth 1 https://github.com/vlang/v vlang
+            cd vlang
+            make -j2
+          fi
+          echo "$PWD/vlang" >> $GITHUB_PATH
 
       - name: Install Binaryen (wasm-opt)
         run: |
