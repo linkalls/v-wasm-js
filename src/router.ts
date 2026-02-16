@@ -43,6 +43,34 @@ const getWindowLocation = (): LocationState => {
 
 export const location: VAtom<LocationState> = v(getWindowLocation());
 
+export function prefetch(to: string): Promise<any> {
+  // Try to resolve URL consistently
+  const base =
+    typeof window !== "undefined" && window.location
+      ? window.location.origin
+      : "http://localhost";
+
+  const url = new URL(to, base);
+  const path = url.pathname;
+  const query = url.search;
+
+  for (const entry of routeRegistry.values()) {
+    const params = matchPath(entry.pattern, path);
+    if (params === null) continue;
+
+    const loc: LocationState = { path, query, hash: url.hash };
+    const ctx: LoaderCtx = { params, search: url.searchParams, location: loc };
+    const key = makeRouteCacheKey(entry.routeId, ctx);
+
+    return primeLoaderCache(key, () => Promise.resolve(entry.loader(ctx))).catch(
+      // Prefetch should never crash the app
+      () => undefined,
+    );
+  }
+
+  return Promise.resolve(undefined);
+}
+
 export function navigate(to: string) {
   if (typeof window !== "undefined") {
     window.history.pushState(null, "", to);
@@ -169,6 +197,15 @@ type CacheEntry =
 
 const loaderCache = new Map<string, CacheEntry>();
 
+type RouteRegistryEntry = {
+  routeId: string;
+  pattern: string;
+  loader: RouteLoader<any>;
+};
+
+// Best-effort registry for prefetch() (populated as routes mount)
+const routeRegistry = new Map<string, RouteRegistryEntry>();
+
 // A small global tick to trigger route re-evaluation after invalidation.
 // (Deleting from the cache alone does not notify the reactive graph.)
 const invalidateTick = v(0);
@@ -208,12 +245,12 @@ export function invalidateCurrent(): void {
   set(invalidateTick, (c) => c + 1);
 }
 
-function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
+function primeLoaderCache<T>(key: string, load: () => Promise<T>): Promise<T> {
   const existing = loaderCache.get(key);
   if (existing) {
-    if (existing.status === "fulfilled") return existing.value as T;
-    if (existing.status === "rejected") throw existing.error;
-    throw existing.promise;
+    if (existing.status === "fulfilled") return Promise.resolve(existing.value as T);
+    if (existing.status === "rejected") return Promise.reject(existing.error);
+    return existing.promise as Promise<T>;
   }
 
   const promise = Promise.resolve().then(load);
@@ -224,6 +261,18 @@ function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
     (error) => loaderCache.set(key, { status: "rejected", error }),
   );
 
+  return promise;
+}
+
+function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
+  const existing = loaderCache.get(key);
+  if (existing) {
+    if (existing.status === "fulfilled") return existing.value as T;
+    if (existing.status === "rejected") throw existing.error;
+    throw existing.promise;
+  }
+
+  const promise = primeLoaderCache(key, load);
   throw promise;
 }
 
@@ -308,6 +357,14 @@ export function Route<T = any>(props: {
       get(invalidateTick);
 
       routeCacheKey = makeRouteCacheKey(routeId, ctx);
+
+      // Register for prefetch() (best-effort)
+      routeRegistry.set(`${routeId}|${fullPattern}`, {
+        routeId,
+        pattern: fullPattern,
+        loader: props.loader,
+      });
+
       data = readLoaderCache(routeCacheKey, () => Promise.resolve(props.loader!(ctx)));
     }
 
@@ -462,5 +519,10 @@ export function A(props: {
     navigate(props.href);
   };
 
-  return h("a", { ...props, onClick }, props.children);
+  const onMouseEnter = () => {
+    // Best-effort prefetch
+    prefetch(props.href);
+  };
+
+  return h("a", { ...props, onClick, onMouseEnter }, props.children);
 }

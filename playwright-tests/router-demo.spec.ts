@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test('router demo: navigate + loader + action invalidates and refreshes loader data', async ({ page }) => {
   await page.goto('/');
 
+  await page.getByTestId('link-user-42').hover();
   await page.getByTestId('link-user-42').click();
 
   await expect(page.getByTestId('users-layout').first()).toHaveText('Users layout');
