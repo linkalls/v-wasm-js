@@ -34,10 +34,10 @@ jobs:
         run: bun install
 
       - name: Build wasm
-        run: npm run build:wasm
+        run: bun run build:wasm
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Test wasm presence
-        run: npm run test:wasm
+        run: bun run test:wasm
