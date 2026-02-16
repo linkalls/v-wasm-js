@@ -421,7 +421,8 @@ export function set<T>(atom: VAtom<T>, value: T | ((prev: T) => T)): void {
       ? (value as (prev: T) => T)(state.value)
       : value;
 
-  if (state.value !== newValue) {
+  // Performance contract: skip propagation/notifications on same-value updates
+  if (!Object.is(state.value, newValue)) {
     state.value = newValue;
 
     // Use WASM for propagation if available
