@@ -3,7 +3,10 @@ node_modules
 
 # output
 out
-dist
+# keep dist ignored by default, but allow committing the wasm artifact
+/dist
+!/dist/
+!/dist/vsignal.wasm
 *.tgz
 
 # code coverage
@@ -33,5 +36,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 *.wasm
+!src/vsignal.wasm
+!dist/vsignal.wasm
 src/generated-wasm.ts
 src/wasm-binary.ts
