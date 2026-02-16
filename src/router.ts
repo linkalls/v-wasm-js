@@ -59,6 +59,39 @@ export function Router(props: { children: any }) {
   return props.children;
 }
 
+/**
+ * Exclusive routing: renders the first matching <Route> among its children.
+ * Place a `path="*"` route last for 404.
+ */
+export function Routes(props: { children: any }) {
+  return () => {
+    const base = useContext(BasePathContext);
+    const loc = get(location);
+
+    const children = Array.isArray(props.children)
+      ? props.children
+      : [props.children];
+
+    for (const child of children) {
+      if (!child || typeof child !== "object") continue;
+      if ((child as any)._brand !== "component") continue;
+      const c: any = child;
+      const p = c.props;
+      if (!p || typeof p.path !== "string") continue;
+
+      const fullPattern = p.path.startsWith("/")
+        ? p.path
+        : joinPaths(base || "", p.path);
+
+      if (matchPath(fullPattern, loc.path) !== null) {
+        return child;
+      }
+    }
+
+    return null;
+  };
+}
+
 // --- Contexts / hooks ---
 
 const ParamsContext = createContext<Record<string, string>>({});

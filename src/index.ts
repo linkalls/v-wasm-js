@@ -34,7 +34,7 @@ export { createContext, useContext } from './context'
 export type { Context } from './context'
 
 // Router
-export { Router, Route, A, navigate, location, invalidate, invalidateRoute, invalidateCurrent } from './router'
+export { Router, Routes, Route, A, navigate, location, invalidate, invalidateRoute, invalidateCurrent } from './router'
 
 // Resource
 export { createResource } from './resource'
