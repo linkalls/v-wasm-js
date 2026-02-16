@@ -75,6 +75,7 @@ declare function useContext<T>(context: Context<T>): T;
 //#endregion
 //#region src/router.d.ts
 interface LocationState {
+  /** Path relative to `basename` */
   path: string;
   query: string;
   hash: string;
@@ -91,6 +92,7 @@ declare function prefetch(to: string): Promise<any>;
 declare function navigate(to: string): void;
 declare function Router(props: {
   children: any;
+  basename?: string;
 }): any;
 /**
  * Exclusive routing: renders the first matching <Route> among its children.

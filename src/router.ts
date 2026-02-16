@@ -11,6 +11,7 @@ import { h, resolve } from "./jsx-runtime";
 import { createContext, useContext } from "./context";
 
 export interface LocationState {
+  /** Path relative to `basename` */
   path: string;
   query: string;
   hash: string;
@@ -30,12 +31,32 @@ export type RouteAction<Input = any, Output = any> = (
 
 // --- Location ---
 
-const getWindowLocation = (): LocationState => {
+const basenameAtom: VAtom<string> = v("");
+
+function stripBasename(pathname: string, basename: string): string {
+  if (!basename) return pathname;
+  const b = basename.endsWith("/") ? basename.slice(0, -1) : basename;
+  if (b && pathname.startsWith(b)) {
+    const rest = pathname.slice(b.length);
+    return rest.startsWith("/") ? rest : "/" + rest;
+  }
+  return pathname;
+}
+
+function withBasename(pathname: string, basename: string): string {
+  if (!basename) return pathname;
+  const b = basename.endsWith("/") ? basename.slice(0, -1) : basename;
+  if (!b) return pathname;
+  if (pathname === "/") return b + "/";
+  return b + (pathname.startsWith("/") ? pathname : "/" + pathname);
+}
+
+const getWindowLocation = (basename = ""): LocationState => {
   if (typeof window === "undefined") {
     return { path: "/", query: "", hash: "" };
   }
   return {
-    path: window.location.pathname,
+    path: stripBasename(window.location.pathname, basename),
     query: window.location.search,
     hash: window.location.hash,
   };
@@ -53,7 +74,8 @@ function resolveUrl(to: string): URL {
 
 export function prefetch(to: string): Promise<any> {
   const url = resolveUrl(to);
-  const path = url.pathname;
+  const base = get(basenameAtom);
+  const path = stripBasename(url.pathname, base);
   const query = url.search;
 
   for (const entry of routeRegistry.values()) {
@@ -76,14 +98,23 @@ export function prefetch(to: string): Promise<any> {
 export function navigate(to: string) {
   if (typeof window !== "undefined") {
     const url = resolveUrl(to);
-    const next = url.pathname + url.search + url.hash;
+    const base = get(basenameAtom);
+
+    const relPath = stripBasename(url.pathname, base);
+    const next = withBasename(relPath, base) + url.search + url.hash;
+
     window.history.pushState(null, "", next);
-    set(location, getWindowLocation());
+    set(location, getWindowLocation(base));
   }
 }
 
-export function Router(props: { children: any }) {
-  const update = () => set(location, getWindowLocation());
+export function Router(props: { children: any; basename?: string }) {
+  // Keep basename in an atom so navigate/prefetch can read it.
+  if (typeof props.basename === "string") {
+    set(basenameAtom, props.basename);
+  }
+
+  const update = () => set(location, getWindowLocation(get(basenameAtom)));
   if (typeof window !== "undefined") {
     window.addEventListener("popstate", update);
     onCleanup(() => window.removeEventListener("popstate", update));
