@@ -19,10 +19,10 @@ function Home() {
       <p>loader/action + Suspense + Form demo (SPA only)</p>
       <ul>
         <li>
-          <A href="/users/42">/users/42</A>
+          <A href="/users/42" data-testid="link-user-42">/users/42</A>
         </li>
         <li>
-          <A href="/users/99?tab=info">/users/99?tab=info</A>
+          <A href="/users/99?tab=info" data-testid="link-user-99">/users/99?tab=info</A>
         </li>
       </ul>
     </div>
@@ -50,13 +50,12 @@ function App() {
           id="user"
           path="/users/:id"
           loader={({ params, search }) => {
-            // fake async
             const tab = search.get("tab") ?? "(none)";
-            return Promise.resolve({
+            return {
               id: params.id,
               tab,
               count: get(apiCount),
-            });
+            };
           }}
           action={(_, input: { inc: number }) => {
             set(apiCount, (c) => c + input.inc);
@@ -65,13 +64,13 @@ function App() {
         >
           {(data, ctx) => (
             <div>
-              <h1>User {data.id}</h1>
-              <div>tab: {data.tab}</div>
-              <div>loader count: {data.count}</div>
+              <h1 data-testid="user-title">User {data.id}</h1>
+              <div data-testid="user-tab">tab: {data.tab}</div>
+              <div data-testid="user-count">loader count: {data.count}</div>
 
               <Form action={ctx.action} showError>
                 <input type="hidden" name="inc" value="1" />
-                <button type="submit">inc</button>
+                <button type="submit" data-testid="btn-inc">inc</button>
               </Form>
 
               <p>

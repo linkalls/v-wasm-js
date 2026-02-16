@@ -1,5 +1,7 @@
+const port = Number(process.env.PORT || 3002);
+
 const server = Bun.serve({
-  port: 3002,
+  port,
   async fetch(req) {
     const url = new URL(req.url);
     let path = url.pathname === "/" ? "/index.html" : url.pathname;

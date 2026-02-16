@@ -130,6 +130,10 @@ type CacheEntry =
 
 const loaderCache = new Map<string, CacheEntry>();
 
+// A small global tick to trigger route re-evaluation after invalidation.
+// (Deleting from the cache alone does not notify the reactive graph.)
+const invalidateTick = v(0);
+
 function stableJson(obj: any): string {
   if (!obj || typeof obj !== "object") return JSON.stringify(obj);
   const keys = Object.keys(obj).sort();
@@ -150,6 +154,7 @@ export function invalidateRoute(routeIdPrefix: string): void {
       loaderCache.delete(k);
     }
   }
+  set(invalidateTick, (c) => c + 1);
 }
 
 // Back-compat: invalidate(prefix) == invalidateRoute(prefix)
@@ -161,6 +166,7 @@ export function invalidateCurrent(): void {
   const key = useContext(RouteKeyContext);
   if (!key) return;
   loaderCache.delete(key);
+  set(invalidateTick, (c) => c + 1);
 }
 
 function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
@@ -228,23 +234,27 @@ export function Route<T = any>(props: {
 }) {
   const routeId = props.id || props.path;
 
-  return Show({
-    when: () => {
-      const loc = get(location);
-      return matchPath(props.path, loc.path) !== null;
-    },
-    children: () => {
-      const loc = get(location);
-      const params = matchPath(props.path, loc.path) || {};
-      const search = new URLSearchParams(loc.query || "");
-      const ctx: LoaderCtx = { params, search, location: loc };
+  // NOTE: Route must be reactive to both location changes and loader invalidations.
+  // Using Show() would mount children once and not re-evaluate the tree when loader data refreshes.
+  // Returning a dynamic function here makes the subtree refresh (with cleanup) when dependencies change.
+  return () => {
+    const loc = get(location);
+    const matchedParams = matchPath(props.path, loc.path);
+    if (matchedParams === null) return null;
 
-      let data: any = undefined;
-      let routeCacheKey: string | null = null;
-      if (props.loader) {
-        routeCacheKey = makeRouteCacheKey(routeId, ctx);
-        data = readLoaderCache(routeCacheKey, () => Promise.resolve(props.loader!(ctx)));
-      }
+    const params = matchedParams || {};
+    const search = new URLSearchParams(loc.query || "");
+    const ctx: LoaderCtx = { params, search, location: loc };
+
+    let data: any = undefined;
+    let routeCacheKey: string | null = null;
+    if (props.loader) {
+      // subscribe to invalidations
+      get(invalidateTick);
+
+      routeCacheKey = makeRouteCacheKey(routeId, ctx);
+      data = readLoaderCache(routeCacheKey, () => Promise.resolve(props.loader!(ctx)));
+    }
 
       const actionState = v<ActionState>({
         pending: false,
@@ -257,12 +267,15 @@ export function Route<T = any>(props: {
         set(actionState, (prev) => ({
           ...prev,
           run: async (input: any) => {
-            set(actionState, { pending: true, error: undefined, data: prev.data, run: prev.run });
+            // IMPORTANT: do not overwrite `run` with a stale/undefined value.
+            // Always preserve the existing function by using an updater.
+            set(actionState, (s) => ({ ...s, pending: true, error: undefined }));
             try {
               const out = await props.action!(ctx, input);
               set(actionState, (s) => ({ ...s, pending: false, data: out }));
               if (invalidateOnAction && routeCacheKey) {
                 loaderCache.delete(routeCacheKey);
+                set(invalidateTick, (c) => c + 1);
               }
               return out;
             } catch (e) {
@@ -286,44 +299,47 @@ export function Route<T = any>(props: {
         data: () => get(actionState).data,
       };
 
-      const child =
-        typeof props.children === "function"
-          ? props.children(data, { ...ctx, action: actionApi })
-          : props.children;
+      const renderChild = Array.isArray(props.children)
+        ? props.children[0]
+        : props.children;
 
-      // Provide contexts to children
-      return resolve({
-        // @ts-ignore
-        _brand: "component",
-        type: ParamsContext.Provider,
-        props: {
-          value: params,
-          children: {
-            // @ts-ignore
-            _brand: "component",
-            type: SearchContext.Provider,
-            props: {
-              value: search,
-              children: {
-                // @ts-ignore
-                _brand: "component",
-                type: LoaderDataContext.Provider,
-                props: {
-                  value: data,
-                  children: {
-                    // @ts-ignore
-                    _brand: "component",
-                    type: ActionContext.Provider,
-                    props: {
-                      value: actionState,
-                      children: {
-                        // @ts-ignore
-                        _brand: "component",
-                        type: RouteKeyContext.Provider,
-                        props: {
-                          value: routeCacheKey,
-                          children: child,
-                        },
+      const child =
+        typeof renderChild === "function"
+          ? renderChild(data, { ...ctx, action: actionApi })
+          : renderChild;
+
+    // Provide contexts to children
+    return resolve({
+      // @ts-ignore
+      _brand: "component",
+      type: ParamsContext.Provider,
+      props: {
+        value: params,
+        children: {
+          // @ts-ignore
+          _brand: "component",
+          type: SearchContext.Provider,
+          props: {
+            value: search,
+            children: {
+              // @ts-ignore
+              _brand: "component",
+              type: LoaderDataContext.Provider,
+              props: {
+                value: data,
+                children: {
+                  // @ts-ignore
+                  _brand: "component",
+                  type: ActionContext.Provider,
+                  props: {
+                    value: actionState,
+                    children: {
+                      // @ts-ignore
+                      _brand: "component",
+                      type: RouteKeyContext.Provider,
+                      props: {
+                        value: routeCacheKey,
+                        children: child,
                       },
                     },
                   },
@@ -332,9 +348,9 @@ export function Route<T = any>(props: {
             },
           },
         },
-      });
-    },
-  });
+      },
+    });
+  };
 }
 
 export function A(props: {
