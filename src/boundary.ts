@@ -26,6 +26,11 @@ export function Suspense(props: { fallback?: any; children: any }): VNode {
   };
 
   const renderer = () => {
+    // SSR: let promises bubble to renderToStringAsync.
+    if (typeof document === 'undefined') {
+      return resolve(props.children);
+    }
+
     const count = get(pendingCount);
     if (count > 0) {
       return resolve(props.fallback);
