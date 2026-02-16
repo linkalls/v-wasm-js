@@ -29,6 +29,9 @@ function Home() {
         <li>
           <A href="/form" data-testid="link-form">/form</A>
         </li>
+        <li>
+          <A href="/form2" data-testid="link-form2">/form2</A>
+        </li>
       </ul>
     </div>
   );
@@ -101,6 +104,10 @@ function App() {
             {() => <FormDemo />}
           </Route>
 
+          <Route path="/form2" id="form2">
+            {() => <FormDemo2 />}
+          </Route>
+
           <Route path="*">{() => <NotFound />}</Route>
         </Routes>
       </Suspense>
@@ -149,6 +156,71 @@ function FormDemo() {
       </Form>
 
       <pre data-testid="result">{() => JSON.stringify(get(formResult))}</pre>
+
+      <A href="/">back</A>
+    </div>
+  );
+}
+
+const form2Result = v<any>({ color: "", pet: "", langs: [] as string[] });
+
+function FormDemo2() {
+  return (
+    <div>
+      <h1>Form2</h1>
+      <Form
+        action={{
+          run: async (input: any) => {
+            const langs = input.langs
+              ? Array.isArray(input.langs)
+                ? input.langs
+                : [input.langs]
+              : [];
+            set(form2Result, {
+              color: input.color ?? "",
+              pet: input.pet ?? "",
+              langs,
+            });
+            return { ok: true };
+          },
+          pending: () => false,
+          error: () => undefined,
+          data: () => undefined,
+        }}
+        coerce={false}
+      >
+        <fieldset>
+          <legend>color</legend>
+          <label>
+            <input data-testid="color-red" type="radio" name="color" value="red" /> red
+          </label>
+          <label>
+            <input data-testid="color-blue" type="radio" name="color" value="blue" /> blue
+          </label>
+        </fieldset>
+
+        <label>
+          pet
+          <select data-testid="pet" name="pet">
+            <option value="">-</option>
+            <option value="cat">cat</option>
+            <option value="dog">dog</option>
+          </select>
+        </label>
+
+        <label>
+          langs
+          <select data-testid="langs" name="langs" multiple>
+            <option value="ts">ts</option>
+            <option value="go">go</option>
+            <option value="zig">zig</option>
+          </select>
+        </label>
+
+        <button data-testid="submit2" type="submit">submit</button>
+      </Form>
+
+      <pre data-testid="result2">{() => JSON.stringify(get(form2Result))}</pre>
 
       <A href="/">back</A>
     </div>
