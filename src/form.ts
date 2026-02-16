@@ -67,6 +67,9 @@ export function Form<TInput = any>(props: {
       const form = e.currentTarget as HTMLFormElement;
       const fd = new FormData(form);
       val = formDataToObject(fd, props.coerce ?? true);
+
+      // Checkbox ergonomics: if a checkbox is unchecked, it does not appear in FormData.
+      // We intentionally keep this as-is for flexibility. Apps can normalize defaults.
     }
 
     props.action.run(val);
