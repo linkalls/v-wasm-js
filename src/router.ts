@@ -43,14 +43,16 @@ const getWindowLocation = (): LocationState => {
 
 export const location: VAtom<LocationState> = v(getWindowLocation());
 
-export function prefetch(to: string): Promise<any> {
-  // Try to resolve URL consistently
+function resolveUrl(to: string): URL {
   const base =
     typeof window !== "undefined" && window.location
-      ? window.location.origin
-      : "http://localhost";
+      ? window.location.href
+      : "http://localhost/";
+  return new URL(to, base);
+}
 
-  const url = new URL(to, base);
+export function prefetch(to: string): Promise<any> {
+  const url = resolveUrl(to);
   const path = url.pathname;
   const query = url.search;
 
@@ -73,7 +75,9 @@ export function prefetch(to: string): Promise<any> {
 
 export function navigate(to: string) {
   if (typeof window !== "undefined") {
-    window.history.pushState(null, "", to);
+    const url = resolveUrl(to);
+    const next = url.pathname + url.search + url.hash;
+    window.history.pushState(null, "", next);
     set(location, getWindowLocation());
   }
 }

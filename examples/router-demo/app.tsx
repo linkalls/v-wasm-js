@@ -59,6 +59,9 @@ function App() {
             {() => (
               <div>
                 <div data-testid="users-layout">Users layout</div>
+                <p>
+                  <A href="?tab=info" data-testid="link-relative-search">relative ?tab=info</A>
+                </p>
                 <Outlet />
               </div>
             )}
