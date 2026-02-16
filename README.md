@@ -76,6 +76,10 @@ render(<Counter />, document.getElementById("app"));
 Performance-first behavior that should remain stable over time:
 - [docs/runtime-spec.md](./docs/runtime-spec.md)
 
+## Introduction
+
+- [docs/introduction/tutorial.md](./docs/introduction/tutorial.md)
+
 ## Core Concepts
 
 ### Atoms with `v()`

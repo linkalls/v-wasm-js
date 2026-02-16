@@ -97,6 +97,9 @@ type ActionApi<TInput = any, TOutput = any> = {
   error: () => any;
   data: () => TOutput | undefined;
 };
+declare function invalidateRoute(routeIdPrefix: string): void;
+declare const invalidate: typeof invalidateRoute;
+declare function invalidateCurrent(): void;
 declare function Route<T = any>(props: {
   id?: string;
   path: string;
@@ -240,5 +243,5 @@ declare function Form<TInput = any>(props: {
   disabled?: boolean;
 }): VNode;
 //#endregion
-export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
+export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
 //# sourceMappingURL=index.d.mts.map

@@ -130,12 +130,37 @@ type CacheEntry =
 
 const loaderCache = new Map<string, CacheEntry>();
 
-export function invalidate(prefix: string): void {
+function stableJson(obj: any): string {
+  if (!obj || typeof obj !== "object") return JSON.stringify(obj);
+  const keys = Object.keys(obj).sort();
+  const out: any = {};
+  for (const k of keys) out[k] = (obj as any)[k];
+  return JSON.stringify(out);
+}
+
+function makeRouteCacheKey(routeId: string, ctx: LoaderCtx): string {
+  // Path matters for params; query matters for search-driven loaders.
+  // Params are included explicitly to avoid ambiguity.
+  return `${routeId}|path=${ctx.location.path}|query=${ctx.location.query}|params=${stableJson(ctx.params)}`;
+}
+
+export function invalidateRoute(routeIdPrefix: string): void {
   for (const k of loaderCache.keys()) {
-    if (k.startsWith(prefix)) {
+    if (k.startsWith(routeIdPrefix + "|")) {
       loaderCache.delete(k);
     }
   }
+}
+
+// Back-compat: invalidate(prefix) == invalidateRoute(prefix)
+export const invalidate = invalidateRoute;
+
+const RouteKeyContext = createContext<string | null>(null);
+
+export function invalidateCurrent(): void {
+  const key = useContext(RouteKeyContext);
+  if (!key) return;
+  loaderCache.delete(key);
 }
 
 function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
@@ -215,9 +240,10 @@ export function Route<T = any>(props: {
       const ctx: LoaderCtx = { params, search, location: loc };
 
       let data: any = undefined;
+      let routeCacheKey: string | null = null;
       if (props.loader) {
-        const key = `${routeId}?${loc.query}|${loc.path}`;
-        data = readLoaderCache(key, () => Promise.resolve(props.loader!(ctx)));
+        routeCacheKey = makeRouteCacheKey(routeId, ctx);
+        data = readLoaderCache(routeCacheKey, () => Promise.resolve(props.loader!(ctx)));
       }
 
       const actionState = v<ActionState>({
@@ -235,8 +261,8 @@ export function Route<T = any>(props: {
             try {
               const out = await props.action!(ctx, input);
               set(actionState, (s) => ({ ...s, pending: false, data: out }));
-              if (invalidateOnAction) {
-                invalidate(routeId);
+              if (invalidateOnAction && routeCacheKey) {
+                loaderCache.delete(routeCacheKey);
               }
               return out;
             } catch (e) {
@@ -279,7 +305,15 @@ export function Route<T = any>(props: {
                     type: ActionContext.Provider,
                     props: {
                       value: actionState,
-                      children: child,
+                      children: {
+                        // @ts-ignore
+                        _brand: "component",
+                        type: RouteKeyContext.Provider,
+                        props: {
+                          value: routeCacheKey,
+                          children: child,
+                        },
+                      },
                     },
                   },
                 },
