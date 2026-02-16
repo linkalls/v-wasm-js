@@ -57,7 +57,13 @@ jobs:
       - name: Install Binaryen (wasm-opt)
         run: |
           cd vlang
-          ./v run ./cmd/tools/install_binaryen.vsh
+
+          # If cached vlang already has binaryen, don't re-run installer (it exits non-zero).
+          if [ -x "$PWD/thirdparty/binaryen/bin/wasm-opt" ] || ls -d "$PWD"/thirdparty/binaryen*/bin >/dev/null 2>&1; then
+            echo "binaryen already present"
+          else
+            ./v run ./cmd/tools/install_binaryen.vsh || true
+          fi
 
           # $GITHUB_PATH becomes active in subsequent steps.
           # V's installer may place wasm-opt under thirdparty/binaryen/<binaryen-version_xxx>/bin
@@ -66,6 +72,11 @@ jobs:
             BIN_DIR="$PWD/thirdparty/binaryen/bin"
           else
             BIN_DIR=$(ls -d "$PWD"/thirdparty/binaryen*/bin 2>/dev/null | head -n 1 || true)
+          fi
+
+          if [ -z "$BIN_DIR" ]; then
+            echo "wasm-opt not found after install" >&2
+            exit 1
           fi
 
           echo "$BIN_DIR" >> $GITHUB_PATH
