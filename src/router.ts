@@ -495,7 +495,7 @@ export function Route<T = any>(props: {
       }
 
     // Provide contexts to children
-    return resolve({
+    const tree = {
       // @ts-ignore
       _brand: "component",
       type: ParamsContext.Provider,
@@ -551,7 +551,13 @@ export function Route<T = any>(props: {
           },
         },
       },
-    });
+    };
+
+    // SSR: return the descriptor tree as-is (server renderer will execute/walk it)
+    if (typeof document === "undefined") return tree as any;
+
+    // Client: resolve into actual DOM nodes
+    return resolve(tree as any);
   };
 }
 

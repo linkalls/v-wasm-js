@@ -120,7 +120,7 @@ declare function Route<T = any>(props: {
   children: any | ((data: T, ctx: LoaderCtx & {
     action: ActionApi<any, any>;
   }) => any);
-}): () => Node | null;
+}): () => any;
 declare function A(props: {
   href: string;
   class?: string;

@@ -218,7 +218,8 @@ function createElement(type: string | Component, props: Props | null): VNode {
 export function resolve(child: any): Node | null {
   if (child == null || child === false || child === true) return null;
 
-  if (child instanceof Node) return child;
+  // In SSR (no DOM), `Node` is undefined.
+  if (typeof Node !== "undefined" && child instanceof Node) return child;
 
   if (Array.isArray(child)) {
     const frag = document.createDocumentFragment();

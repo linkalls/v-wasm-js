@@ -18,8 +18,13 @@ export function createContext<T>(defaultValue: T, key?: symbol): Context<T> {
     newContext[id] = props.value;
 
     return runWithContext(newContext, () => {
-      // Resolve children while context is active
-      // This allows components passed as children to execute useContext inside their body
+      // SSR: do not call resolve() (it is DOM-oriented). Let server renderer walk the tree.
+      if (typeof document === "undefined") {
+        return props.children;
+      }
+
+      // Client: resolve children while context is active.
+      // This allows components passed as children to execute useContext inside their body.
       return resolve(props.children);
     });
   };
