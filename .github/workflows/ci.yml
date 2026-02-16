@@ -29,8 +29,16 @@ jobs:
           ./v run ./cmd/tools/install_binaryen.vsh
 
           # $GITHUB_PATH becomes active in subsequent steps.
-          echo "$PWD/thirdparty/binaryen/bin" >> $GITHUB_PATH
-          export PATH="$PWD/thirdparty/binaryen/bin:$PATH"
+          # V's installer may place wasm-opt under thirdparty/binaryen/<binaryen-version_xxx>/bin
+          BIN_DIR=""
+          if [ -x "$PWD/thirdparty/binaryen/bin/wasm-opt" ]; then
+            BIN_DIR="$PWD/thirdparty/binaryen/bin"
+          else
+            BIN_DIR=$(ls -d "$PWD"/thirdparty/binaryen*/bin 2>/dev/null | head -n 1 || true)
+          fi
+
+          echo "$BIN_DIR" >> $GITHUB_PATH
+          export PATH="$BIN_DIR:$PATH"
           wasm-opt --version
 
       - name: Install deps
