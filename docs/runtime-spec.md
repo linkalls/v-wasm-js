@@ -27,7 +27,8 @@ It exists to protect performance and prevent accidental semantic drift.
 
 - `derive(fn)` creates a derived atom.
 - Derived atoms track dependencies by calling `get()` within `fn`.
-- Derived atoms are **memoized**: recompute only when invalidated by upstream changes.
+- Derived atoms are **push-updated** on upstream changes (propagation recomputes affected derived values).
+  - The runtime may memoize internally, but the observable model is: updates propagate forward and derived values update as dependencies change.
 
 ### Dependency tracking
 
