@@ -49,6 +49,8 @@ export {
   dehydrateLoaderCache,
   hydrateLoaderCache,
   matchPath,
+  makeRouteCacheKey,
+  stableJson,
 } from './router'
 
 export type { LoaderCtx, RouteLoader, RouteAction, ActionApi } from './router'

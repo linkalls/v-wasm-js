@@ -321,7 +321,7 @@ const routeRegistry = new Map<string, RouteRegistryEntry>();
 // (Deleting from the cache alone does not notify the reactive graph.)
 const invalidateTick = v(0);
 
-function stableJson(obj: any): string {
+export function stableJson(obj: any): string {
   if (!obj || typeof obj !== "object") return JSON.stringify(obj);
   const keys = Object.keys(obj).sort();
   const out: any = {};
@@ -329,7 +329,7 @@ function stableJson(obj: any): string {
   return JSON.stringify(out);
 }
 
-function makeRouteCacheKey(routeId: string, ctx: LoaderCtx): string {
+export function makeRouteCacheKey(routeId: string, ctx: LoaderCtx): string {
   // Path matters for params; query matters for search-driven loaders.
   // Params are included explicitly to avoid ambiguity.
   return `${routeId}|path=${ctx.location.path}|query=${ctx.location.query}|params=${stableJson(ctx.params)}`;

@@ -128,6 +128,8 @@ declare function dehydrateLoaderCache(cache?: Map<string, CacheEntry>): Record<s
   error: any;
 }>;
 declare function hydrateLoaderCache(data: Record<string, any> | null | undefined, cache?: Map<string, CacheEntry>): void;
+declare function stableJson(obj: any): string;
+declare function makeRouteCacheKey(routeId: string, ctx: LoaderCtx): string;
 declare function invalidateRoute(routeIdPrefix: string): void;
 declare const invalidate: typeof invalidateRoute;
 declare function invalidateCurrent(): void;
@@ -275,5 +277,5 @@ declare function Form<TInput = any>(props: {
   disabled?: boolean;
 }): VNode;
 //#endregion
-export { A, type ActionApi, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, type LoaderCtx, Match, Outlet, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, type RouteAction, type RouteLoader, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, dehydrateLoaderCache, derive, get, hydrateLoaderCache, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, matchPath, mount, navigate, onCleanup, prefetch, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
+export { A, type ActionApi, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, type LoaderCtx, Match, Outlet, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, type RouteAction, type RouteLoader, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, dehydrateLoaderCache, derive, get, hydrateLoaderCache, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, makeRouteCacheKey, matchPath, mount, navigate, onCleanup, prefetch, render, set, stableJson, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
 //# sourceMappingURL=index.d.mts.map
