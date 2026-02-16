@@ -273,7 +273,18 @@ export function Route<T = any>(props: {
         }));
       }
 
-      const actionApi = useAction();
+      const actionApi: ActionApi<any, any> = {
+        run: (input: any) => {
+          const st = get(actionState);
+          if (!st.run) {
+            return Promise.reject(new Error("No action registered for this route"));
+          }
+          return st.run(input);
+        },
+        pending: () => get(actionState).pending,
+        error: () => get(actionState).error,
+        data: () => get(actionState).data,
+      };
 
       const child =
         typeof props.children === "function"

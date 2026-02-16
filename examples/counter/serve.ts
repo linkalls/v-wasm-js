@@ -25,6 +25,9 @@ const server = Bun.serve({
     }
 
     const file = Bun.file(`examples/counter${path}`);
+    if (!(await file.exists())) {
+      return new Response("Not found", { status: 404 });
+    }
     return new Response(file);
   },
 });

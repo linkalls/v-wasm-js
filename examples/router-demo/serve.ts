@@ -30,6 +30,9 @@ const server = Bun.serve({
     }
 
     const file = Bun.file(`examples/router-demo${path}`);
+    if (!(await file.exists())) {
+      return new Response("Not found", { status: 404 });
+    }
     return new Response(file);
   },
 });
