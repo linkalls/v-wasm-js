@@ -4,6 +4,7 @@
  */
 import { Router, Route, A } from "../src/router";
 import { Suspense } from "../src/boundary";
+import { Form } from "../src/form";
 import { v, get, set } from "../src/core";
 
 const apiCount = v(0);
@@ -38,7 +39,9 @@ export function App() {
             <div>
               <h1>User {data.id}</h1>
               <div>loader count: {data.count}</div>
-              <button onClick={() => ctx.action.run({ inc: 1 })}>inc</button>
+              <Form action={ctx.action} value={{ inc: 1 }}>
+                <button type="submit">inc</button>
+              </Form>
               {() => (ctx.action.pending() ? <div>pending...</div> : null)}
               <div>
                 <A href="/">back</A>

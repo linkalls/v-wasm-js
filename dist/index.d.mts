@@ -219,5 +219,13 @@ declare function render(component: VNode | (() => VNode), container: Element | n
  */
 declare const mount: typeof render;
 //#endregion
-export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, type InitWasmOptions, Match, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
+//#region src/form.d.ts
+declare function Form<TInput = any>(props: {
+  action: ActionApi<TInput, any>;
+  value: TInput | (() => TInput);
+  children: any;
+  disabled?: boolean;
+}): VNode;
+//#endregion
+export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
 //# sourceMappingURL=index.d.mts.map

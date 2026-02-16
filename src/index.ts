@@ -54,3 +54,6 @@ export { Show, For, Switch, Match } from './flow'
 
 // Render
 export { render, mount } from './render'
+
+// Form
+export { Form } from './form'
