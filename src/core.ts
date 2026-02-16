@@ -487,7 +487,7 @@ function updateDerived(source: VAtom<any>): void {
       const state = getAtomState(atom);
       const newValue = atom.read((a) => getAtomState(a).value);
 
-      if (state.value !== newValue) {
+      if (!Object.is(state.value, newValue)) {
         state.value = newValue;
         scheduleUpdates(state.subscribers);
         // for-of faster than forEach
@@ -529,7 +529,7 @@ function updateDerivedWasm(source: VAtom<any>): void {
         // Re-evaluate with ultraFastGet since all atoms in WASM path are initialized
         const newValue = atom.read(ultraFastGet);
 
-        if (state.value !== newValue) {
+        if (!Object.is(state.value, newValue)) {
           state.value = newValue;
           scheduleUpdates(state.subscribers);
         }
