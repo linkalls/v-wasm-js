@@ -222,7 +222,11 @@ declare const mount: typeof render;
 //#region src/form.d.ts
 declare function Form<TInput = any>(props: {
   action: ActionApi<TInput, any>;
-  value: TInput | (() => TInput);
+  /**
+       * Optional explicit value.
+       * If omitted, the value is collected from <input name=...> via FormData.
+       */
+  value?: TInput | (() => TInput);
   children: any;
   disabled?: boolean;
 }): VNode;

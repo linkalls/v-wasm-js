@@ -39,7 +39,8 @@ export function App() {
             <div>
               <h1>User {data.id}</h1>
               <div>loader count: {data.count}</div>
-              <Form action={ctx.action} value={{ inc: 1 }}>
+              <Form action={ctx.action}>
+                <input type="hidden" name="inc" value="1" />
                 <button type="submit">inc</button>
               </Form>
               {() => (ctx.action.pending() ? <div>pending...</div> : null)}

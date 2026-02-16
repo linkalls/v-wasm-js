@@ -1,15 +1,45 @@
 import { h } from "./jsx-runtime";
 import type { ActionApi } from "./router";
 
+function formDataToObject(fd: FormData): Record<string, any> {
+  const out: Record<string, any> = {};
+
+  for (const [k, v] of fd.entries()) {
+    const value = typeof v === "string" ? v : v; // File stays as File
+
+    if (k in out) {
+      const prev = out[k];
+      out[k] = Array.isArray(prev) ? [...prev, value] : [prev, value];
+    } else {
+      out[k] = value;
+    }
+  }
+
+  return out;
+}
+
 export function Form<TInput = any>(props: {
   action: ActionApi<TInput, any>;
-  value: TInput | (() => TInput);
+  /**
+   * Optional explicit value.
+   * If omitted, the value is collected from <input name=...> via FormData.
+   */
+  value?: TInput | (() => TInput);
   children: any;
   disabled?: boolean;
 }) {
   const onSubmit = (e: SubmitEvent) => {
     e.preventDefault();
-    const val = typeof props.value === "function" ? (props.value as any)() : props.value;
+
+    let val: any;
+    if (typeof props.value !== "undefined") {
+      val = typeof props.value === "function" ? (props.value as any)() : props.value;
+    } else {
+      const form = e.currentTarget as HTMLFormElement;
+      const fd = new FormData(form);
+      val = formDataToObject(fd);
+    }
+
     props.action.run(val);
   };
 
