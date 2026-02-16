@@ -62,6 +62,7 @@ export function Router(props: { children: any }) {
 // --- Contexts / hooks ---
 
 const ParamsContext = createContext<Record<string, string>>({});
+const BasePathContext = createContext<string>("");
 const SearchContext = createContext<URLSearchParams>(new URLSearchParams());
 const LoaderDataContext = createContext<any>(undefined);
 
@@ -190,6 +191,13 @@ function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
 
 // --- Path matching ---
 
+function joinPaths(base: string, child: string): string {
+  const b = base.endsWith("/") ? base.slice(0, -1) : base;
+  const c = child.startsWith("/") ? child : "/" + child;
+  if (!b) return c;
+  return b + c;
+}
+
 function matchPath(
   pattern: string,
   path: string,
@@ -235,16 +243,25 @@ export function Route<T = any>(props: {
   const routeId = props.id || props.path;
 
   // NOTE: Route must be reactive to both location changes and loader invalidations.
-  // Using Show() would mount children once and not re-evaluate the tree when loader data refreshes.
-  // Returning a dynamic function here makes the subtree refresh (with cleanup) when dependencies change.
+  // Returning a dynamic function makes the subtree refresh (with cleanup) when deps change.
   return () => {
+    const base = useContext(BasePathContext);
+    const fullPattern = props.path.startsWith("/")
+      ? props.path
+      : joinPaths(base || "", props.path);
+
     const loc = get(location);
-    const matchedParams = matchPath(props.path, loc.path);
+    const matchedParams = matchPath(fullPattern, loc.path);
     if (matchedParams === null) return null;
 
     const params = matchedParams || {};
     const search = new URLSearchParams(loc.query || "");
     const ctx: LoaderCtx = { params, search, location: loc };
+
+    // Nested routes can use relative paths. We expose the current matched base.
+    const nextBase = fullPattern.endsWith("*")
+      ? fullPattern.slice(0, -1)
+      : fullPattern;
 
     let data: any = undefined;
     let routeCacheKey: string | null = null;
@@ -305,7 +322,7 @@ export function Route<T = any>(props: {
 
       const child =
         typeof renderChild === "function"
-          ? renderChild(data, { ...ctx, action: actionApi })
+          ? () => renderChild(data, { ...ctx, action: actionApi })
           : renderChild;
 
     // Provide contexts to children
@@ -339,7 +356,15 @@ export function Route<T = any>(props: {
                       type: RouteKeyContext.Provider,
                       props: {
                         value: routeCacheKey,
-                        children: child,
+                        children: {
+                          // @ts-ignore
+                          _brand: "component",
+                          type: BasePathContext.Provider,
+                          props: {
+                            value: nextBase,
+                            children: child,
+                          },
+                        },
                       },
                     },
                   },

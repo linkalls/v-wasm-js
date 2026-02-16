@@ -29,14 +29,7 @@ function Home() {
   );
 }
 
-function NotFound() {
-  return (
-    <div>
-      <h1>404</h1>
-      <A href="/">back</A>
-    </div>
-  );
-}
+// NotFound route omitted in demo (router is not exclusive yet)
 
 function App() {
   return (
@@ -46,41 +39,48 @@ function App() {
           {() => <Home />}
         </Route>
 
-        <Route
-          id="user"
-          path="/users/:id"
-          loader={({ params, search }) => {
-            const tab = search.get("tab") ?? "(none)";
-            return {
-              id: params.id,
-              tab,
-              count: get(apiCount),
-            };
-          }}
-          action={(_, input: { inc: number }) => {
-            set(apiCount, (c) => c + input.inc);
-            return { ok: true as const };
-          }}
-        >
-          {(data, ctx) => (
+        <Route path="/users/*" id="users">
+          {() => (
             <div>
-              <h1 data-testid="user-title">User {data.id}</h1>
-              <div data-testid="user-tab">tab: {data.tab}</div>
-              <div data-testid="user-count">loader count: {data.count}</div>
+              <div data-testid="users-layout">Users layout</div>
+              <Route
+                id="user"
+                path=":id"
+                loader={({ params, search }) => {
+                  const tab = search.get("tab") ?? "(none)";
+                  return {
+                    id: params.id,
+                    tab,
+                    count: get(apiCount),
+                  };
+                }}
+                action={(_, input: { inc: number }) => {
+                  set(apiCount, (c) => c + input.inc);
+                  return { ok: true as const };
+                }}
+              >
+                {(data, ctx) => (
+                  <div>
+                    <h1 data-testid="user-title">User {data.id}</h1>
+                    <div data-testid="user-tab">tab: {data.tab}</div>
+                    <div data-testid="user-count">loader count: {data.count}</div>
 
-              <Form action={ctx.action} showError>
-                <input type="hidden" name="inc" value="1" />
-                <button type="submit" data-testid="btn-inc">inc</button>
-              </Form>
+                    <Form action={ctx.action} showError>
+                      <input type="hidden" name="inc" value="1" />
+                      <button type="submit" data-testid="btn-inc">inc</button>
+                    </Form>
 
-              <p>
-                <A href="/">back</A>
-              </p>
+                    <p>
+                      <A href="/">back</A>
+                    </p>
+                  </div>
+                )}
+              </Route>
             </div>
           )}
         </Route>
 
-        <Route path="*">{() => <NotFound />}</Route>
+        {/* no 404 route in this demo yet */}
       </Suspense>
     </Router>
   );

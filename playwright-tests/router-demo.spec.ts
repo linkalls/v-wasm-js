@@ -5,6 +5,7 @@ test('router demo: navigate + loader + action invalidates and refreshes loader d
 
   await page.getByTestId('link-user-42').click();
 
+  await expect(page.getByTestId('users-layout').first()).toHaveText('Users layout');
   await expect(page.getByTestId('user-title')).toHaveText('User 42');
   await expect(page.getByTestId('user-tab')).toHaveText('tab: (none)');
   await expect(page.getByTestId('user-count')).toHaveText('loader count: 0');
