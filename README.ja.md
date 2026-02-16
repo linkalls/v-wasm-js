@@ -23,6 +23,14 @@
 
 > 📊 詳細は [results.md](./results.md) と [docs/benchmarks.md](./docs/benchmarks.md) を参照
 
+## Runtime Spec / 仕様（ランタイム）
+
+- [docs/runtime-spec.ja.md](./docs/runtime-spec.ja.md)
+
+## Introduction
+
+- [docs/introduction/tutorial.ja.md](./docs/introduction/tutorial.ja.md)
+
 ## 特徴
 
 - 🎯 **ミニマルAPI** - `v()`, `derive()`, `get()`, `set()`, `batch()`, `startTransition()`
