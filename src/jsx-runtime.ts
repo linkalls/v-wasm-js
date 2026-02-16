@@ -215,8 +215,27 @@ function createElement(type: string | Component, props: Props | null): VNode {
   return el;
 }
 
-export function resolve(child: any): Node | null {
+export function resolve(child: any): any {
   if (child == null || child === false || child === true) return null;
+
+  // SSR: DOM-less normalization/execution
+  if (typeof document === "undefined") {
+    if (Array.isArray(child)) return child.map(resolve);
+
+    // Component Descriptor -> Execute
+    if (typeof child === 'object' && child && (child as any)._brand === 'component') {
+      const res = (child as any).type((child as any).props);
+      return resolve(res);
+    }
+
+    // Reactive Function
+    if (typeof child === 'function') {
+      return resolve(child());
+    }
+
+    // Server Element or primitives
+    return child;
+  }
 
   // In SSR (no DOM), `Node` is undefined.
   if (typeof Node !== "undefined" && child instanceof Node) return child;

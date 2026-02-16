@@ -25,6 +25,34 @@ describe('ssr router', () => {
     expect(html).toContain('Home')
   })
 
+  test('SSR can render based on provided locationAtom', () => {
+    const locAtom = require('../src/core').v({ path: '/counter', query: '', hash: '' })
+
+    const App = () =>
+      jsx(Router as any, {
+        locationAtom: locAtom,
+        children: jsx(Routes as any, {
+          children: [
+            jsx(Route as any, {
+              path: '/',
+              children: () => jsx('div', { children: 'Home' }),
+            }),
+            jsx(Route as any, {
+              path: '/counter',
+              children: () => jsx('div', { children: 'Counter' }),
+            }),
+            jsx(Route as any, {
+              path: '*',
+              children: () => jsx('div', { children: '404' }),
+            }),
+          ],
+        }),
+      })
+
+    const html = renderToString(App())
+    expect(html).toContain('Counter')
+  })
+
   test('A renders as anchor in SSR', () => {
     const html = renderToString(jsx(A as any, { href: '/x', children: 'go' }))
     expect(html).toContain('<a')

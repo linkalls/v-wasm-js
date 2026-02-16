@@ -1,4 +1,4 @@
-import { c as VNode } from "./jsx-runtime-9zcxrKau.mjs";
+import { c as VNode } from "./jsx-runtime-bC684k47.mjs";
 
 //#region src/core.d.ts
 /**
@@ -93,6 +93,8 @@ declare function navigate(to: string): void;
 declare function Router(props: {
   children: any;
   basename?: string;
+  locationAtom?: VAtom<LocationState>;
+  loaderCache?: Map<string, any>;
 }): any;
 /**
  * Exclusive routing: renders the first matching <Route> among its children.
@@ -108,14 +110,24 @@ type ActionApi<TInput = any, TOutput = any> = {
   error: () => any;
   data: () => TOutput | undefined;
 };
-declare function dehydrateLoaderCache(): Record<string, {
+type CacheEntry = {
+  status: "pending";
+  promise: Promise<any>;
+} | {
+  status: "fulfilled";
+  value: any;
+} | {
+  status: "rejected";
+  error: any;
+};
+declare function dehydrateLoaderCache(cache?: Map<string, CacheEntry>): Record<string, {
   status: "fulfilled";
   value: any;
 } | {
   status: "rejected";
   error: any;
 }>;
-declare function hydrateLoaderCache(data: Record<string, any> | null | undefined): void;
+declare function hydrateLoaderCache(data: Record<string, any> | null | undefined, cache?: Map<string, CacheEntry>): void;
 declare function invalidateRoute(routeIdPrefix: string): void;
 declare const invalidate: typeof invalidateRoute;
 declare function invalidateCurrent(): void;

@@ -34,7 +34,7 @@ declare const jsxDEV: typeof jsx;
  * JSX Factory function (h for classic mode)
  */
 declare function h(type: string | Component, props: Props | null, ...children: any[]): VNode;
-declare function resolve(child: any): Node | null;
+declare function resolve(child: any): any;
 /**
  * Fragment support
  */
@@ -63,4 +63,4 @@ declare namespace JSX {
 }
 //#endregion
 export { JSX as a, VNode as c, jsx as d, jsxDEV as f, resolve as h, Fragment as i, cleanupNode as l, registerCleanup as m, Children as n, Props as o, jsxs as p, ComponentDescriptor as r, ServerElement as s, Child as t, h as u };
-//# sourceMappingURL=jsx-runtime-9zcxrKau.d.mts.map
+//# sourceMappingURL=jsx-runtime-bC684k47.d.mts.map

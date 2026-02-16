@@ -64,6 +64,9 @@ const getWindowLocation = (basename = ""): LocationState => {
 
 export const location: VAtom<LocationState> = v(getWindowLocation());
 
+const LocationAtomContext = createContext<VAtom<LocationState> | null>(null);
+const LoaderCacheContext = createContext<Map<string, any> | null>(null);
+
 function resolveUrl(to: string): URL {
   let base =
     typeof window !== "undefined" && window.location
@@ -121,7 +124,7 @@ export function navigate(to: string) {
   }
 }
 
-export function Router(props: { children: any; basename?: string }) {
+export function Router(props: { children: any; basename?: string; locationAtom?: VAtom<LocationState>; loaderCache?: Map<string, any> }) {
   // Keep basename in an atom so navigate/prefetch can read it.
   if (typeof props.basename === "string") {
     set(basenameAtom, props.basename);
@@ -134,7 +137,30 @@ export function Router(props: { children: any; basename?: string }) {
     window.addEventListener("popstate", update);
     onCleanup(() => window.removeEventListener("popstate", update));
   }
-  return props.children;
+  const locAtom = props.locationAtom ?? location;
+  const cache = props.loaderCache ?? loaderCache;
+
+  // Provide per-tree atoms/caches
+  const tree = {
+    // @ts-ignore
+    _brand: "component",
+    type: LocationAtomContext.Provider,
+    props: {
+      value: locAtom,
+      children: {
+        // @ts-ignore
+        _brand: "component",
+        type: LoaderCacheContext.Provider,
+        props: { value: cache, children: props.children },
+      },
+    },
+  };
+
+  // SSR: do not call resolve() (DOM-oriented)
+  if (typeof document === "undefined") return tree as any;
+
+  // Client: resolve into DOM nodes
+  return resolve(tree as any);
 }
 
 /**
@@ -144,7 +170,8 @@ export function Router(props: { children: any; basename?: string }) {
 export function Routes(props: { children: any }) {
   return () => {
     const base = useContext(BasePathContext);
-    const loc = get(location);
+    const locAtom = useContext(LocationAtomContext) ?? location;
+    const loc = get(locAtom);
 
     const children = Array.isArray(props.children)
       ? props.children
@@ -247,22 +274,26 @@ export type CacheEntry =
 
 const loaderCache = new Map<string, CacheEntry>();
 
+// (internal) loader cache is provided via LoaderCacheContext in Route/invalidations
+
 // --- SSR/CSR hydration helpers ---
-export function dehydrateLoaderCache(): Record<string, { status: "fulfilled"; value: any } | { status: "rejected"; error: any }> {
+export function dehydrateLoaderCache(cache?: Map<string, CacheEntry>): Record<string, { status: "fulfilled"; value: any } | { status: "rejected"; error: any }> {
   const out: any = {};
-  for (const [k, v] of loaderCache.entries()) {
+  const c = cache ?? loaderCache;
+  for (const [k, v] of c.entries()) {
     if (v.status === "fulfilled") out[k] = { status: "fulfilled", value: v.value };
     if (v.status === "rejected") out[k] = { status: "rejected", error: String((v as any).error ?? '') };
   }
   return out;
 }
 
-export function hydrateLoaderCache(data: Record<string, any> | null | undefined): void {
+export function hydrateLoaderCache(data: Record<string, any> | null | undefined, cache?: Map<string, CacheEntry>): void {
+  const c = cache ?? loaderCache;
   if (!data) return;
   for (const [k, v] of Object.entries(data)) {
     if (!v || typeof v !== 'object') continue;
-    if ((v as any).status === 'fulfilled') loaderCache.set(k, { status: 'fulfilled', value: (v as any).value });
-    if ((v as any).status === 'rejected') loaderCache.set(k, { status: 'rejected', error: new Error(String((v as any).error ?? '')) });
+    if ((v as any).status === 'fulfilled') c.set(k, { status: 'fulfilled', value: (v as any).value });
+    if ((v as any).status === 'rejected') c.set(k, { status: 'rejected', error: new Error(String((v as any).error ?? '')) });
   }
 }
 
@@ -294,6 +325,7 @@ function makeRouteCacheKey(routeId: string, ctx: LoaderCtx): string {
 }
 
 export function invalidateRoute(routeIdPrefix: string): void {
+  // Global invalidation helper (default cache)
   for (const k of loaderCache.keys()) {
     if (k.startsWith(routeIdPrefix + "|")) {
       loaderCache.delete(k);
@@ -310,12 +342,13 @@ const RouteKeyContext = createContext<string | null>(null);
 export function invalidateCurrent(): void {
   const key = useContext(RouteKeyContext);
   if (!key) return;
-  loaderCache.delete(key);
+  const cache = useContext(LoaderCacheContext) ?? loaderCache;
+  cache.delete(key);
   set(invalidateTick, (c) => c + 1);
 }
 
-function primeLoaderCache<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const existing = loaderCache.get(key);
+function primeLoaderCache<T>(key: string, load: () => Promise<T>, cache: Map<string, CacheEntry> = loaderCache): Promise<T> {
+  const existing = cache.get(key);
   if (existing) {
     if (existing.status === "fulfilled") return Promise.resolve(existing.value as T);
     if (existing.status === "rejected") return Promise.reject(existing.error);
@@ -323,25 +356,25 @@ function primeLoaderCache<T>(key: string, load: () => Promise<T>): Promise<T> {
   }
 
   const promise = Promise.resolve().then(load);
-  loaderCache.set(key, { status: "pending", promise });
+  cache.set(key, { status: "pending", promise });
 
   promise.then(
-    (value) => loaderCache.set(key, { status: "fulfilled", value }),
-    (error) => loaderCache.set(key, { status: "rejected", error }),
+    (value) => cache.set(key, { status: "fulfilled", value }),
+    (error) => cache.set(key, { status: "rejected", error }),
   );
 
   return promise;
 }
 
-function readLoaderCache<T>(key: string, load: () => Promise<T>): T {
-  const existing = loaderCache.get(key);
+function readLoaderCache<T>(key: string, load: () => Promise<T>, cache: Map<string, CacheEntry> = loaderCache): T {
+  const existing = cache.get(key);
   if (existing) {
     if (existing.status === "fulfilled") return existing.value as T;
     if (existing.status === "rejected") throw existing.error;
     throw existing.promise;
   }
 
-  const promise = primeLoaderCache(key, load);
+  const promise = primeLoaderCache(key, load, cache);
   throw promise;
 }
 
@@ -404,7 +437,8 @@ export function Route<T = any>(props: {
       ? props.path
       : joinPaths(base || "", props.path);
 
-    const loc = get(location);
+    const locAtom = useContext(LocationAtomContext) ?? location;
+    const loc = get(locAtom);
     const matchedParams = matchPath(fullPattern, loc.path);
     if (matchedParams === null) return null;
 
@@ -433,7 +467,12 @@ export function Route<T = any>(props: {
         loader: props.loader,
       });
 
-      data = readLoaderCache(routeCacheKey, () => Promise.resolve(props.loader!(ctx)));
+      const cache = useContext(LoaderCacheContext) ?? loaderCache;
+      data = readLoaderCache(
+        routeCacheKey,
+        () => Promise.resolve(props.loader!(ctx)),
+        cache,
+      );
     }
 
       const actionState = v<ActionState>({
@@ -454,7 +493,8 @@ export function Route<T = any>(props: {
               const out = await props.action!(ctx, input);
               set(actionState, (s) => ({ ...s, pending: false, data: out }));
               if (invalidateOnAction && routeCacheKey) {
-                loaderCache.delete(routeCacheKey);
+                const cache = useContext(LoaderCacheContext) ?? loaderCache;
+                cache.delete(routeCacheKey);
                 set(invalidateTick, (c) => c + 1);
               }
               return out;
