@@ -173,9 +173,20 @@ export function Routes(props: { children: any }) {
     const locAtom = useContext(LocationAtomContext) ?? location;
     const loc = get(locAtom);
 
-    const children = Array.isArray(props.children)
+    const childrenRaw = Array.isArray(props.children)
       ? props.children
       : [props.children];
+
+    const children: any[] = [];
+    const stack = [...childrenRaw];
+    while (stack.length) {
+      const it = stack.shift();
+      if (Array.isArray(it)) {
+        stack.unshift(...it);
+      } else {
+        children.push(it);
+      }
+    }
 
     for (const child of children) {
       if (!child || typeof child !== "object") continue;
