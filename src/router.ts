@@ -387,7 +387,7 @@ function joinPaths(base: string, child: string): string {
   return b + c;
 }
 
-function matchPath(
+export function matchPath(
   pattern: string,
   path: string,
 ): Record<string, string> | null {

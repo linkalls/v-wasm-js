@@ -131,6 +131,7 @@ declare function hydrateLoaderCache(data: Record<string, any> | null | undefined
 declare function invalidateRoute(routeIdPrefix: string): void;
 declare const invalidate: typeof invalidateRoute;
 declare function invalidateCurrent(): void;
+declare function matchPath(pattern: string, path: string): Record<string, string> | null;
 declare function Route<T = any>(props: {
   id?: string;
   path: string;
@@ -274,5 +275,5 @@ declare function Form<TInput = any>(props: {
   disabled?: boolean;
 }): VNode;
 //#endregion
-export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, Outlet, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, dehydrateLoaderCache, derive, get, hydrateLoaderCache, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, mount, navigate, onCleanup, prefetch, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
+export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, Outlet, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, dehydrateLoaderCache, derive, get, hydrateLoaderCache, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, matchPath, mount, navigate, onCleanup, prefetch, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
 //# sourceMappingURL=index.d.mts.map
