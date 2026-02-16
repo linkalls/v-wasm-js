@@ -98,6 +98,7 @@ const ParamsContext = createContext<Record<string, string>>({});
 const BasePathContext = createContext<string>("");
 const SearchContext = createContext<URLSearchParams>(new URLSearchParams());
 const LoaderDataContext = createContext<any>(undefined);
+const OutletContext = createContext<any>(null);
 
 type ActionState = {
   pending: boolean;
@@ -117,6 +118,10 @@ export function useSearch(): URLSearchParams {
 
 export function useLoaderData<T = any>(): T {
   return useContext(LoaderDataContext) as T;
+}
+
+export function Outlet() {
+  return useContext(OutletContext);
 }
 
 export type ActionApi<TInput = any, TOutput = any> = {
@@ -349,14 +354,39 @@ export function Route<T = any>(props: {
         data: () => get(actionState).data,
       };
 
-      const renderChild = Array.isArray(props.children)
-        ? props.children[0]
-        : props.children;
+      const childrenArr = Array.isArray(props.children)
+        ? props.children
+        : [props.children];
+
+      const renderChild = childrenArr[0];
+      const nestedCandidates = childrenArr.slice(1);
 
       const child =
         typeof renderChild === "function"
           ? () => renderChild(data, { ...ctx, action: actionApi })
           : renderChild;
+
+      // Implicit nested routing: if nested <Route> children exist, pick the first match
+      // under this route's base and expose it via <Outlet />.
+      let outletNode: any = null;
+      if (nestedCandidates.length > 0) {
+        for (const n of nestedCandidates) {
+          if (!n || typeof n !== "object") continue;
+          if ((n as any)._brand !== "component") continue;
+          const c: any = n;
+          const p = c.props;
+          if (!p || typeof p.path !== "string") continue;
+
+          const fullPattern = p.path.startsWith("/")
+            ? p.path
+            : joinPaths(nextBase || "", p.path);
+
+          if (matchPath(fullPattern, loc.path) !== null) {
+            outletNode = n;
+            break;
+          }
+        }
+      }
 
     // Provide contexts to children
     return resolve({
@@ -395,7 +425,15 @@ export function Route<T = any>(props: {
                           type: BasePathContext.Provider,
                           props: {
                             value: nextBase,
-                            children: child,
+                            children: {
+                              // @ts-ignore
+                              _brand: "component",
+                              type: OutletContext.Provider,
+                              props: {
+                                value: outletNode,
+                                children: child,
+                              },
+                            },
                           },
                         },
                       },

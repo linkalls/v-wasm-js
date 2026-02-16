@@ -98,6 +98,7 @@ declare function Router(props: {
 declare function Routes(props: {
   children: any;
 }): () => any;
+declare function Outlet(): any;
 type ActionApi<TInput = any, TOutput = any> = {
   run: (input: TInput) => Promise<TOutput>;
   pending: () => boolean;
@@ -250,5 +251,5 @@ declare function Form<TInput = any>(props: {
   disabled?: boolean;
 }): VNode;
 //#endregion
-export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
+export { A, type Context, ErrorBoundary, type ErrorBoundaryContextValue, For, Form, type InitWasmOptions, Match, Outlet, type Resource, type ResourceFetcher, type ResourceOptions, type ResourceState, Route, Router, Routes, type SetStoreFunction, Show, Suspense, type SuspenseContextValue, Switch, type VAtom, batch, createContext, createEffect, createResource, createRoot, createStore, derive, get, initWasm, invalidate, invalidateCurrent, invalidateRoute, location, mount, navigate, onCleanup, render, set, startTransition, subscribe, untrack, use, useContext, useSet, useValue, v, wasm, withRenderContext };
 //# sourceMappingURL=index.d.mts.map

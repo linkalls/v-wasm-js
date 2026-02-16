@@ -2,6 +2,7 @@ import {
   Router,
   Routes,
   Route,
+  Outlet,
   A,
   Suspense,
   Form,
@@ -52,46 +53,45 @@ function App() {
             {() => (
               <div>
                 <div data-testid="users-layout">Users layout</div>
-
-                <Routes>
-                  <Route
-                    id="user"
-                    path=":id"
-                    loader={({ params, search }) => {
-                      const tab = search.get("tab") ?? "(none)";
-                      return {
-                        id: params.id,
-                        tab,
-                        count: get(apiCount),
-                      };
-                    }}
-                    action={(_, input: { inc: number }) => {
-                      set(apiCount, (c) => c + input.inc);
-                      return { ok: true as const };
-                    }}
-                  >
-                    {(data, ctx) => (
-                      <div>
-                        <h1 data-testid="user-title">User {data.id}</h1>
-                        <div data-testid="user-tab">tab: {data.tab}</div>
-                        <div data-testid="user-count">loader count: {data.count}</div>
-
-                        <Form action={ctx.action} showError>
-                          <input type="hidden" name="inc" value="1" />
-                          <button type="submit" data-testid="btn-inc">inc</button>
-                        </Form>
-
-                        <p>
-                          <A href="/">back</A>
-                        </p>
-                      </div>
-                    )}
-                  </Route>
-
-                  <Route path="*">{() => <div data-testid="users-404">users 404</div>}</Route>
-                </Routes>
+                <Outlet />
               </div>
             )}
+
+            <Route
+              id="user"
+              path=":id"
+              loader={({ params, search }) => {
+                const tab = search.get("tab") ?? "(none)";
+                return {
+                  id: params.id,
+                  tab,
+                  count: get(apiCount),
+                };
+              }}
+              action={(_, input: { inc: number }) => {
+                set(apiCount, (c) => c + input.inc);
+                return { ok: true as const };
+              }}
+            >
+              {(data, ctx) => (
+                <div>
+                  <h1 data-testid="user-title">User {data.id}</h1>
+                  <div data-testid="user-tab">tab: {data.tab}</div>
+                  <div data-testid="user-count">loader count: {data.count}</div>
+
+                  <Form action={ctx.action} showError>
+                    <input type="hidden" name="inc" value="1" />
+                    <button type="submit" data-testid="btn-inc">inc</button>
+                  </Form>
+
+                  <p>
+                    <A href="/">back</A>
+                  </p>
+                </div>
+              )}
+            </Route>
+
+            <Route path="*">{() => <div data-testid="users-404">users 404</div>}</Route>
           </Route>
 
           <Route path="*">{() => <NotFound />}</Route>
