@@ -3,9 +3,8 @@ node_modules
 
 # output
 out
-# keep dist ignored, but allow committing the wasm artifact
-/dist/**
-!/dist/vsignal.wasm
+# dist is committed so git-based installs (e.g. bun add github:...) work without running build scripts
+# NOTE: keep *.tgz ignored
 *.tgz
 
 # code coverage
