@@ -46,13 +46,12 @@ jobs:
             echo "V already cached"
           else
             git clone --depth 1 https://github.com/vlang/v vlang
-            cd vlang
-            make -j2
+            (cd vlang && make -j2)
           fi
 
-          # $GITHUB_PATH only applies to subsequent steps, so export PATH for this step too.
-          echo "$PWD/vlang" >> $GITHUB_PATH
-          export PATH="$PWD/vlang:$PATH"
+          # Use workspace-absolute path (PWD can change during the step)
+          echo "$GITHUB_WORKSPACE/vlang" >> $GITHUB_PATH
+          export PATH="$GITHUB_WORKSPACE/vlang:$PATH"
           v version
 
       - name: Install Binaryen (wasm-opt)
@@ -78,7 +77,7 @@ jobs:
 
       - name: Build wasm
         run: |
-          export PATH="$PWD/vlang:$PATH"
+          export PATH="$GITHUB_WORKSPACE/vlang:$PATH"
           bun run build:wasm
 
       - name: Build
