@@ -71,6 +71,11 @@ function Counter() {
 render(<Counter />, document.getElementById("app"));
 ```
 
+## Runtime Spec
+
+Performance-first behavior that should remain stable over time:
+- [docs/runtime-spec.md](./docs/runtime-spec.md)
+
 ## Core Concepts
 
 ### Atoms with `v()`
