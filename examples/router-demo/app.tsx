@@ -32,6 +32,9 @@ function Home() {
         <li>
           <A href="/form2" data-testid="link-form2">/form2</A>
         </li>
+        <li>
+          <A href="/nested/aaa/child/bbb" data-testid="link-nested">/nested/aaa/child/bbb</A>
+        </li>
       </ul>
     </div>
   );
@@ -54,6 +57,22 @@ function App() {
       <Suspense fallback={<div>loading...</div>}>
         <Routes>
           <Route path="/">{() => <Home />}</Route>
+
+
+          <Route path="/nested/:parent/*" id="nested">
+            {(data, ctx) => (
+              <div>
+                <div data-testid="nested-parent">parent={ctx.params.parent}</div>
+                <Outlet />
+              </div>
+            )}
+
+            <Route path="child/:child" id="nested-child">
+              {(data, ctx) => (
+                <div data-testid="nested-child">child={ctx.params.child}</div>
+              )}
+            </Route>
+          </Route>
 
           <Route path="/users/*" id="users">
             {() => (

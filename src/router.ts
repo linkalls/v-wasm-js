@@ -295,16 +295,14 @@ function matchPath(
 ): Record<string, string> | null {
   if (pattern === "*") return {};
 
-  // Prefix wildcard: "/foo/*"
-  if (pattern.endsWith("*")) {
-    const base = pattern.slice(0, -1);
-    if (path.startsWith(base)) return {};
-    return null;
-  }
+  const isPrefix = pattern.endsWith("*");
+  const normalized = isPrefix ? pattern.slice(0, -1) : pattern;
 
-  const a = pattern.split("/").filter(Boolean);
+  const a = normalized.split("/").filter(Boolean);
   const b = path.split("/").filter(Boolean);
-  if (a.length !== b.length) return null;
+
+  if (!isPrefix && a.length !== b.length) return null;
+  if (isPrefix && b.length < a.length) return null;
 
   const params: Record<string, string> = {};
   for (let i = 0; i < a.length; i++) {
@@ -345,7 +343,8 @@ export function Route<T = any>(props: {
     const matchedParams = matchPath(fullPattern, loc.path);
     if (matchedParams === null) return null;
 
-    const params = matchedParams || {};
+    const parentParams = useContext(ParamsContext);
+    const params = { ...(parentParams || {}), ...(matchedParams || {}) };
     const search = new URLSearchParams(loc.query || "");
     const ctx: LoaderCtx = { params, search, location: loc };
 
