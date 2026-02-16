@@ -3,9 +3,8 @@ node_modules
 
 # output
 out
-# keep dist ignored by default, but allow committing the wasm artifact
-/dist
-!/dist/
+# keep dist ignored, but allow committing the wasm artifact
+/dist/**
 !/dist/vsignal.wasm
 *.tgz
 

@@ -3,8 +3,8 @@
  * Inspired by Jotai's simplicity, powered by V WASM
  */
 
-// Default WASM location (emitted as dist/vsignal.wasm by postbuild)
-const DEFAULT_WASM_URL = new URL("./vsignal.wasm", import.meta.url);
+// @rollup/plugin-wasm will inline this as base64
+import initVsignal from "./vsignal.wasm";
 
 // === Types ===
 type Getter = <T>(atom: VAtom<T>) => T;
@@ -213,32 +213,9 @@ export async function initWasm(
           );
         }
       } else {
-        // Option 3 (default): load WASM next to the emitted JS bundle (dist/vsignal.wasm)
-        const response = await measure("fetch", () => fetch(DEFAULT_WASM_URL));
-
-        if (!response.ok) {
-          console.error(
-            `Failed to load default WASM: ${response.status} ${response.statusText} (${DEFAULT_WASM_URL.toString()})`,
-          );
-          return;
-        }
-
-        if (typeof WebAssembly.instantiateStreaming === "function") {
-          try {
-            instantiated = await measure("compile", () =>
-              WebAssembly.instantiateStreaming(response.clone(), imports),
-            );
-          } catch {
-            // MIME type might be wrong; fall through to arrayBuffer
-          }
-        }
-
-        if (!instantiated) {
-          const bytes = await response.arrayBuffer();
-          instantiated = await measure("compile", () =>
-            WebAssembly.instantiate(bytes, imports),
-          );
-        }
+        // Option 3: Use bundled WASM via @rollup/plugin-wasm (default)
+        const instance = await measure("compile", () => initVsignal(imports));
+        instantiated = instance;
       }
 
       if (!instantiated) {

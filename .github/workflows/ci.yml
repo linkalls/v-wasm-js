@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Build toolchain for generating src/vsignal.wasm
+      - name: Install V
+        run: |
+          git clone --depth 1 https://github.com/vlang/v vlang
+          cd vlang
+          make -j2
+          echo "$PWD" >> $GITHUB_PATH
+
+      - name: Install Binaryen (wasm-opt)
+        run: |
+          cd vlang
+          ./v run ./cmd/tools/install_binaryen.vsh
+          echo "$PWD/thirdparty/binaryen/bin" >> $GITHUB_PATH
+          wasm-opt --version
+
+      - name: Install deps
+        run: bun install
+
+      - name: Build wasm
+        run: npm run build:wasm
+
+      - name: Build
+        run: npm run build
+
+      - name: Test wasm presence
+        run: npm run test:wasm
