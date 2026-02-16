@@ -79,13 +79,24 @@ interface LocationState {
   query: string;
   hash: string;
 }
+interface LoaderCtx {
+  params: Record<string, string>;
+  search: URLSearchParams;
+  location: LocationState;
+}
+type RouteLoader<T> = (ctx: LoaderCtx) => T | Promise<T>;
+type RouteAction<Input = any, Output = any> = (ctx: LoaderCtx, input: Input) => Output | Promise<Output>;
 declare const location: VAtom<LocationState>;
 declare function navigate(to: string): void;
 declare function Router(props: {
   children: any;
 }): any;
-declare function Route(props: {
+declare function Route<T = any>(props: {
+  id?: string;
   path: string;
+  loader?: RouteLoader<T>;
+  action?: RouteAction<any, any>;
+  invalidateOnAction?: boolean;
   children: any;
 }): VNode;
 declare function A(props: {
