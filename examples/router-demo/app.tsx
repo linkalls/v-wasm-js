@@ -26,6 +26,9 @@ function Home() {
         <li>
           <A href="/users/99?tab=info" data-testid="link-user-99">/users/99?tab=info</A>
         </li>
+        <li>
+          <A href="/form" data-testid="link-form">/form</A>
+        </li>
       </ul>
     </div>
   );
@@ -94,10 +97,61 @@ function App() {
             <Route path="*">{() => <div data-testid="users-404">users 404</div>}</Route>
           </Route>
 
+          <Route path="/form" id="form">
+            {() => <FormDemo />}
+          </Route>
+
           <Route path="*">{() => <NotFound />}</Route>
         </Routes>
       </Suspense>
     </Router>
+  );
+}
+
+const formResult = v<any>({ agree: false, tags: [] as string[] });
+
+function FormDemo() {
+  return (
+    <div>
+      <h1>Form</h1>
+      <Form
+        action={{
+          run: async (input: any) => {
+            // normalize checkbox default
+            const agree = Boolean(input.agree);
+            const tags = input.tags
+              ? Array.isArray(input.tags)
+                ? input.tags
+                : [input.tags]
+              : [];
+            set(formResult, { agree, tags });
+            return { ok: true };
+          },
+          pending: () => false,
+          error: () => undefined,
+          data: () => undefined,
+        }}
+      >
+        <label>
+          <input data-testid="agree" type="checkbox" name="agree" value="true" /> agree
+        </label>
+
+        <div>
+          <label>
+            <input data-testid="tag1" type="checkbox" name="tags" value="1" /> tag1
+          </label>
+          <label>
+            <input data-testid="tag2" type="checkbox" name="tags" value="2" /> tag2
+          </label>
+        </div>
+
+        <button data-testid="submit" type="submit">submit</button>
+      </Form>
+
+      <pre data-testid="result">{() => JSON.stringify(get(formResult))}</pre>
+
+      <A href="/">back</A>
+    </div>
   );
 }
 
