@@ -112,6 +112,8 @@ export function Router(props: { children: any; basename?: string }) {
   // Keep basename in an atom so navigate/prefetch can read it.
   if (typeof props.basename === "string") {
     set(basenameAtom, props.basename);
+    // Update location to ensure it reflects the new basename
+    set(location, getWindowLocation(props.basename));
   }
 
   const update = () => set(location, getWindowLocation(get(basenameAtom)));
