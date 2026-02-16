@@ -227,6 +227,15 @@ declare function Form<TInput = any>(props: {
        * If omitted, the value is collected from <input name=...> via FormData.
        */
   value?: TInput | (() => TInput);
+  /**
+       * When collecting from FormData, coerce common scalars:
+       * - "true"/"false" -> boolean
+       * - numeric strings -> number
+       * - "null" -> null
+       * Default: true (ergonomic for small apps)
+       */
+  coerce?: boolean; /** Render action error under the form when true (default: false). */
+  showError?: boolean;
   children: any;
   disabled?: boolean;
 }): VNode;

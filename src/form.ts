@@ -1,11 +1,30 @@
 import { h } from "./jsx-runtime";
 import type { ActionApi } from "./router";
 
-function formDataToObject(fd: FormData): Record<string, any> {
+function coerceScalar(value: any): any {
+  if (typeof value !== "string") return value;
+
+  const s = value.trim();
+  if (s === "") return s;
+
+  if (s === "true") return true;
+  if (s === "false") return false;
+  if (s === "null") return null;
+  if (s === "undefined") return undefined;
+
+  // number-ish (avoid converting things like "00123"? we keep it simple)
+  const n = Number(s);
+  if (!Number.isNaN(n) && String(n) === s) return n;
+
+  return value;
+}
+
+function formDataToObject(fd: FormData, coerce: boolean): Record<string, any> {
   const out: Record<string, any> = {};
 
   for (const [k, v] of fd.entries()) {
-    const value = typeof v === "string" ? v : v; // File stays as File
+    const raw = typeof v === "string" ? v : v; // File stays as File
+    const value = coerce ? coerceScalar(raw) : raw;
 
     if (k in out) {
       const prev = out[k];
@@ -25,6 +44,16 @@ export function Form<TInput = any>(props: {
    * If omitted, the value is collected from <input name=...> via FormData.
    */
   value?: TInput | (() => TInput);
+  /**
+   * When collecting from FormData, coerce common scalars:
+   * - "true"/"false" -> boolean
+   * - numeric strings -> number
+   * - "null" -> null
+   * Default: true (ergonomic for small apps)
+   */
+  coerce?: boolean;
+  /** Render action error under the form when true (default: false). */
+  showError?: boolean;
   children: any;
   disabled?: boolean;
 }) {
@@ -37,7 +66,7 @@ export function Form<TInput = any>(props: {
     } else {
       const form = e.currentTarget as HTMLFormElement;
       const fd = new FormData(form);
-      val = formDataToObject(fd);
+      val = formDataToObject(fd, props.coerce ?? true);
     }
 
     props.action.run(val);
@@ -45,8 +74,7 @@ export function Form<TInput = any>(props: {
 
   const disabled = props.disabled ?? false;
 
-  // Note: we intentionally keep this minimal; users can style/compose as needed.
-  return h(
+  const formEl = h(
     "form",
     {
       onSubmit,
@@ -58,5 +86,24 @@ export function Form<TInput = any>(props: {
           : "",
     },
     props.children,
+  );
+
+  if (!props.showError) return formEl;
+
+  // Render error under the form when enabled.
+  return h(
+    "div",
+    {},
+    formEl,
+    () => {
+      const err = props.action.error();
+      if (!err) return null;
+      const msg = err instanceof Error ? err.stack || err.message : String(err);
+      return h(
+        "pre",
+        { style: "color:#b00020;white-space:pre-wrap;margin:0.5rem 0 0;" },
+        msg,
+      );
+    },
   );
 }
