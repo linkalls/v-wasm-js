@@ -52,6 +52,14 @@ export function render(component: VNode | (() => VNode), container: Element | nu
 }
 
 /**
+ * Hydrate a component to a container (currently aliases render)
+ * TODO: Implement true hydration (attach to existing DOM)
+ */
+export function hydrate(component: VNode | (() => VNode), container: Element | null): (() => void) {
+  return render(component, container)
+}
+
+/**
  * Mount shorthand
  */
 export const mount = render

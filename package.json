@@ -26,6 +26,10 @@
       "import": "./dist/server.mjs",
       "types": "./dist/server.d.mts"
     },
+    "./client": {
+      "import": "./dist/client.mjs",
+      "types": "./dist/client.d.mts"
+    },
     "./wasm": "./dist/vsignal.wasm"
   },
   "files": [

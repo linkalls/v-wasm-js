@@ -7,6 +7,7 @@ export default defineConfig({
     "jsx-runtime": "./src/jsx-runtime.ts",
     "jsx-dev-runtime": "./src/jsx-dev-runtime.ts",
     server: "./src/server/index.ts",
+    client: "./src/client.ts",
   },
   outDir: "./dist",
   minify: true,

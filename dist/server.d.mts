@@ -1,4 +1,4 @@
-import { t as Child } from "./jsx-runtime-bC684k47.mjs";
+import { t as Child } from "./jsx-runtime-BOuyqblg.mjs";
 
 //#region src/server/render.d.ts
 declare function renderToString(node: Child): string;
