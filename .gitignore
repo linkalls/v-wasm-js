@@ -1,43 +1,11 @@
-# dependencies (bun install)
-node_modules
+# build artifacts
+benchmarks/*/dist/
+benchmarks/vitrio-app/dist/
+dist/
 
-# output
-out
-# dist is committed so git-based installs (e.g. bun add github:...) work without running build scripts
-# NOTE: keep *.tgz ignored
-*.tgz
+# local wasm experiments
+src/vsignal*.wasm*
+src/*.wasm.bak
 
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# test artifacts
-/test-results
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
-.DS_Store
-*.wasm
-!src/vsignal.wasm
-!dist/vsignal.wasm
-src/generated-wasm.ts
-src/wasm-binary.ts
+# local benches
+benchmarks-rust/
