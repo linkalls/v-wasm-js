@@ -3,9 +3,17 @@ benchmarks/*/dist/
 benchmarks/vitrio-app/dist/
 dist/
 
+# dependencies
+node_modules/
+benchmarks/**/node_modules/
+
+# playwright
+/test-results/
+
 # local wasm experiments
 src/vsignal*.wasm*
 src/*.wasm.bak
+benchmarks/vsignal.wasm
 
 # local benches
 benchmarks-rust/
