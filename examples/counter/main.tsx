@@ -169,6 +169,20 @@ function App() {
 // Initialize
 // =====================
 
+type BenchApi = {
+  bumpCount: (n: number) => void
+}
+
+// Expose a tiny benchmark API for Playwright.
+;(window as unknown as { __bench?: BenchApi }).__bench = {
+  bumpCount(n: number) {
+    // Deterministic workload: n propagate calls.
+    for (let i = 0; i < n; i++) {
+      set(countAtom, c => c + 1)
+    }
+  },
+}
+
 const root = document.getElementById('app')
 if (root) {
   ;(window as { __vitrioHydrated?: boolean }).__vitrioHydrated = false
